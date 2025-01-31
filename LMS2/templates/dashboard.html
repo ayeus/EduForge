@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - LMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Your Dashboard</h1>
+        <h2>Your Enrolled Courses</h2>
+        <ul class="course-list">
+            {% for course in courses %}
+            <li>
+                <a href="{{ url_for('progress', course_id=course.course_id) }}">
+                    {{ course.course_name }}
+                </a>
+                <p>{{ course.description }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        <a href="/logout" class="btn">Logout</a>
+    </div>
+</body>
+</html>

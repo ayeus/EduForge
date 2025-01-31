@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress - LMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Your Progress</h1>
+        <h2>Course: {{ course_name }}</h2>
+        <ul class="progress-list">
+            {% for lesson in progress %}
+            <li>
+                <h3>{{ lesson.lesson_name }}</h3>
+                <p>Status: {{ "Completed" if lesson.completed else "Not Completed" }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        <a href="/dashboard" class="btn">Back to Dashboard</a>
+    </div>
+</body>
+</html>
