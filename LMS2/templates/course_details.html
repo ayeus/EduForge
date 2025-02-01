@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Details - LMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Course Lessons</h1>
+        <ul class="lesson-list">
+            {% for lesson in lessons %}
+            <li>
+                <h3>{{ lesson.lesson_name }}</h3>
+                <p>{{ lesson.content }}</p>
+                <video controls>
+                    <source src="{{ url_for('get_video', lesson_id=lesson.lesson_id) }}" type="video/webm">
+                    Your browser does not support the video tag.
+                </video>
+            </li>
+            {% endfor %}
+        </ul>
+        <a href="{{ url_for('student_dashboard') }}" class="btn">Back to Dashboard</a>
+    </div>
+</body>
+</html>

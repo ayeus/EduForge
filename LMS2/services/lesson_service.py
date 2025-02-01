@@ -14,3 +14,13 @@ def get_lessons_for_student(user_id):
     cursor.close()
     db.close()
     return lessons
+
+def get_lessons_for_course(course_id):
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+    query = "SELECT * FROM Lessons WHERE course_id = %s"
+    cursor.execute(query, (course_id,))
+    lessons = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return lessons

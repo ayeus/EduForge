@@ -5,6 +5,7 @@ from services.course_service import get_all_courses
 from services.enrollment_service import enroll_user_service
 from database.db_connection import get_db_connection
 from services.lesson_service import get_lessons_for_student
+from services.lesson_service import get_lessons_for_course
 from flask import Response
 
 
@@ -78,11 +79,9 @@ def student_dashboard():
     if "user_id" not in session or session.get("role") != "student":
         return redirect(url_for("login"))
 
-    # Fetch the list of lessons for the student
-    user_id = session["user_id"]
-    lessons = get_lessons_for_student(user_id)  # Replace with your function to fetch lessons
-
-    return render_template("student_dashboard.html", lessons=lessons)
+    # Fetch all available courses
+    courses = get_all_courses()
+    return render_template("student_dashboard.html", courses=courses)
 
 @app.route("/enroll/<int:course_id>")
 def enroll_course(course_id):
@@ -138,6 +137,16 @@ def get_video(lesson_id):
     if video_data:
         return Response(video_data, mimetype="video/webm")
     return "Video not found", 404
+
+@app.route("/course/<int:course_id>")
+def course_details(course_id):
+    if "user_id" not in session or session.get("role") != "student":
+        return redirect(url_for("login"))
+
+    # Fetch lessons for the selected course
+    lessons = get_lessons_for_course(course_id)
+    return render_template("course_details.html", lessons=lessons)
+
 # Logout route
 @app.route("/logout")
 def logout():

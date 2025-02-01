@@ -5,7 +5,10 @@ def get_all_courses():
     cursor = db.cursor(dictionary=True)
     query = "SELECT * FROM Courses"
     cursor.execute(query)
-    return cursor.fetchall()
+    courses = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return courses
 
 def get_enrolled_courses(user_id):
     db = get_db_connection()
