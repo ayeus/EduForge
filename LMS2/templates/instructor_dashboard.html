@@ -39,6 +39,10 @@
                         <button type="button" id="stopRecording_1" disabled>Stop Recording</button>
                         <input type="hidden" id="video_1" name="video_1">
                     </div>
+                    <div class="form-group">
+                        <label>Or Upload Video:</label>
+                        <input type="file" id="upload_video_1" name="upload_video_1" accept="video/*">
+                    </div>
                 </div>
             </div>
 
@@ -73,6 +77,10 @@
                     <button type="button" id="startRecording_${lessonCount}">Start Recording</button>
                     <button type="button" id="stopRecording_${lessonCount}" disabled>Stop Recording</button>
                     <input type="hidden" id="video_${lessonCount}" name="video_${lessonCount}">
+                </div>
+                <div class="form-group">
+                    <label>Or Upload Video:</label>
+                    <input type="file" id="upload_video_${lessonCount}" name="upload_video_${lessonCount}" accept="video/*">
                 </div>
             `;
 

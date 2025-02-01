@@ -15,7 +15,7 @@
                 <h3>{{ lesson.lesson_name }}</h3>
                 <p>{{ lesson.content }}</p>
                 <video controls>
-                    <source src="{{ url_for('get_video', lesson_id=lesson.lesson_id) }}" type="video/webm">
+                    <source src="{{ url_for('static', filename='uploads/' + lesson.video_filename) }}" type="video/webm">
                     Your browser does not support the video tag.
                 </video>
             </li>
