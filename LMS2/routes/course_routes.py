@@ -1,7 +1,9 @@
-from flask import request, redirect, url_for, session, flash
+from flask import request, redirect, url_for, session, flash, render_template
 from services.course_service import create_course_service, get_all_courses
 from services.enrollment_service import enroll_user_service
 from database.db_connection import get_db_connection
+from utils import allowed_file  # Import the allowed_file function
+import os
 
 def init_course_routes(app):
     @app.route("/instructor/dashboard")

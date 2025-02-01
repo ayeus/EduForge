@@ -36,23 +36,24 @@ body {
 .navbar .logout {
     font-size: 1.2rem;
     text-decoration: none;
-    background-color: red;
+    background-color: rgb(231, 225, 225);
     color: white;
     padding: 8px 20px;
     border-radius: 4px;
     transition: background 0.3s;
     border: 2px solid white;
+    display: block;
 }
 
 .navbar .logout:hover {
-    background: darkred;
+    background: rgb(240, 237, 237);
 }
 
-.navbar a {
+.navbar button{
     color: black;
     font-size: 1.2rem;
     text-decoration: none;
-    padding: 10px 50px;
+    padding: 10px 800px;
     border-radius: 0;
     transition: background 0.3s;
     background-color: white;

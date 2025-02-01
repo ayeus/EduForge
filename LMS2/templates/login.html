@@ -4,45 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - LMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link to External CSS File -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+    <!-- Dark Mode Toggle Script -->
     <script>
         function toggleDarkMode() {
-            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-            if (isDarkMode) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('darkMode', 'disabled');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('darkMode', 'enabled');
-            }
+            const body = document.body;
+            body.classList.toggle('dark');
+            localStorage.setItem('darkMode', body.classList.contains('dark') ? 'enabled' : 'disabled');
         }
 
+        // Check for dark mode preference on page load
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('darkMode') === 'enabled') {
-                document.documentElement.classList.add('dark');
+                document.body.classList.add('dark');
             }
         });
     </script>
-    <style>
-        body {
-            background: url('https://source.unsplash.com/1600x900/?technology,abstract') no-repeat center center fixed;
-            background-size: cover;
-        }
-    </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen relative">
-    <div class="absolute top-4 right-4">
-        <button onclick="toggleDarkMode()" class="p-2 rounded bg-gray-200 dark:bg-gray-600 text-lg shadow-lg">
-            🌙 / ☀️
-        </button>
-    </div>
+<body>
+    <!-- Dark Mode Toggle Button -->
     
-    <div class="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg backdrop-blur-md bg-opacity-80 dark:bg-opacity-80 animate-fade-in">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-200 text-center">Login</h1>
-        
+
+    <!-- Login Form Container -->
+    <div class="form-container">
+        <h1>Log In</h1>
+
+        <!-- Flash Messages (for error handling) -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-                <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded dark:bg-red-700 dark:text-red-200 animate-bounce">
+                <div class="error-message">
                     {% for message in messages %}
                         <p>{{ message }}</p>
                     {% endfor %}
@@ -50,20 +41,23 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="/login" class="space-y-4 animate-slide-in">
+        <!-- Login Form -->
+        <form method="POST" action="/login">
             <div>
-                <label for="email" class="block text-gray-700 dark:text-gray-300">Email:</label>
-                <input type="email" id="email" name="email" required
-                       class="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 transition-transform transform hover:scale-105">
+                
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
             </div>
             <div>
-                <label for="password" class="block text-gray-700 dark:text-gray-300">Password:</label>
-                <input type="password" id="password" name="password" required
-                       class="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 transition-transform transform hover:scale-105">
+                
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
             </div>
-            <button type="submit" class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">Login</button>
+            <button type="submit">Login</button>
         </form>
-        <p class="text-center text-gray-600 dark:text-gray-300">Don't have an account? <a href="{{ url_for('register') }}" class="text-blue-500 hover:underline">Register here</a>.</p>
+
+        <!-- Registration Link -->
+        <p class="register-link">
+            Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.
+        </p>
     </div>
 </body>
 </html>

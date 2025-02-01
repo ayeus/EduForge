@@ -6,6 +6,7 @@ from routes.course_routes import init_course_routes
 from routes.lesson_routes import init_lesson_routes
 from routes.student_routes import init_student_routes
 
+
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"webm", "mp4", "ogg"}
 
@@ -21,4 +22,6 @@ init_lesson_routes(app)
 init_student_routes(app)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+     if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+     app.run(debug=True)
