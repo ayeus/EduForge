@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Dashboard - LMS</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='id.css') }}">
     <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
 </head>
 <body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <span class="brand">EduForge</span>
+        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+    </div>
+
     <div class="container">
         <h1>Welcome, Instructor!</h1>
         <h2>Create a New Course</h2>
@@ -49,7 +56,6 @@
             <button type="button" id="add_lesson" class="btn">Add Another Lesson</button>
             <button type="submit" class="btn">Create Course</button>
         </form>
-        <a href="{{ url_for('logout') }}" class="btn">Logout</a>
     </div>
 
     <script>
