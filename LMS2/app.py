@@ -11,7 +11,7 @@ import os
 
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"webm", "mp4", "ogg"}
-app = Flask(__name__) 
+app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -24,11 +24,17 @@ def allowed_file(filename):
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # Required for session management
 
-# Home route (Login Page)
 @app.route("/")
+def index():
+    return render_template("index.html")
+
+# Login page
+@app.route("/login")
 def login():
-    
     return render_template("login.html")
+
+# Home route (Login Page)
+
 
 # Login route
 @app.route("/login", methods=["POST"])
@@ -129,25 +135,20 @@ def create_course():
         while True:
             lesson_name = request.form.get(f"lesson_name_{lesson_count}")
             lesson_content = request.form.get(f"lesson_content_{lesson_count}")
-            video_url = request.form.get(f"video_{lesson_count}")
+            recorded_video = request.files.get(f"video_{lesson_count}")
             uploaded_video = request.files.get(f"upload_video_{lesson_count}")
 
             if not lesson_name or not lesson_content:
                 break  # Stop if no more lessons are found
 
-            # Handle uploaded video
+            # Handle recorded or uploaded video
             video_filename = None
-            if uploaded_video and allowed_file(uploaded_video.filename):
-                video_filename = f"course_{course_id}_lesson_{lesson_count}.webm"
+            if recorded_video and allowed_file(recorded_video.filename):
+                video_filename = f"course_{course_id}_lesson_{lesson_count}_recorded.webm"
+                recorded_video.save(os.path.join(app.config["UPLOAD_FOLDER"], video_filename))
+            elif uploaded_video and allowed_file(uploaded_video.filename):
+                video_filename = f"course_{course_id}_lesson_{lesson_count}_uploaded.webm"
                 uploaded_video.save(os.path.join(app.config["UPLOAD_FOLDER"], video_filename))
-
-            # Handle recorded video
-            if video_url:
-                import requests
-                video_data = requests.get(video_url).content
-                video_filename = f"course_{course_id}_lesson_{lesson_count}.webm"
-                with open(os.path.join(app.config["UPLOAD_FOLDER"], video_filename), "wb") as f:
-                    f.write(video_data)
 
             # Save lesson to database
             query = "INSERT INTO Lessons (course_id, lesson_name, content, video_filename) VALUES (%s, %s, %s, %s)"

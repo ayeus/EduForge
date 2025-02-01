@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Our Learning Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    
+</head>
+<body>
+    <!-- Navbar with Login button -->
+    <div class="navbar">
+        <span>EduForge</span>
+        <a href="{{ url_for('login') }}">Login</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="container">
+        <h1>Welcome to Our Learning Platform</h1>
+        <p>
+            Our platform is designed to help instructors create and manage courses, while students can easily enroll and learn from these courses. Whether you're an instructor or a student, we provide the tools you need to succeed.
+        </p>
+        <h2>For Instructors</h2>
+        <p>
+            Instructors can create courses, add lessons, and upload videos to share their knowledge with students. Our intuitive interface makes it easy to manage your courses and track student progress.
+        </p>
+        <h2>For Students</h2>
+        <p>
+            Students can browse available courses, enroll in their preferred courses, and access video lessons. Our platform ensures a seamless learning experience, allowing you to learn at your own pace.
+        </p>
+    </div>
+</body>
+</html>
