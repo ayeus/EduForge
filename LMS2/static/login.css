@@ -10,12 +10,51 @@ body {
     color: #333;
 }
 
+/* Video Background Styles */
+.video-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Place it behind other content */
+    overflow: hidden;
+}
+
+.video-background video {
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover; /* Ensures the video covers the entire background */
+    filter: blur(5px); /* Adjust the blur intensity */
+}
+
+
+/* Navbar Styles */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-brand {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(to right, white , rgb(35, 154, 178) );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 /* Form Container */
 .form-container {
     width: 100%;
     max-width: 400px;
     padding: 2rem;
-    background-color: #000000; /* White background */
+    background-color:transparent; /* White background */
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     text-align: center;
@@ -34,12 +73,13 @@ body {
     width: 100%;
     padding: 0.75rem;
     margin-bottom: 2rem;
-    border: 1px solid #000; /* Black border */
+    /* Black border */
     border-radius: 8px;
     font-size: 1rem;
     outline: none;
-    transition: border-color 0.3s ease;
-    color: black;
+    
+    transition: height 0.4s ease-in-out;
+    color: rgb(255, 255, 255);
     background-color: transparent;
     border-color: #f1eeee;
 }
@@ -58,14 +98,14 @@ body {
 .form-container button {
     width: 100%;
     padding: 0.75rem;
-    background-color: #007BFF; /* Blue button */
+    background-color: #fafafa; /* Blue button */
     color: #000000;
     border: none;
     border-radius: 8px;
     font-size: 1rem;
     width: 200px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.4s ease;
     position: center;
 }
 

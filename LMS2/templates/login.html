@@ -21,11 +21,36 @@
             }
         });
     </script>
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            color: white;
+            text-align: center;
+            z-index: 1000;
+        }
+        .form-container {
+            margin-top: 100px; /* Ensures space below navbar */
+        }
+    </style>
 </head>
 <body>
-    <!-- Dark Mode Toggle Button -->
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">EduForge</div>
+    </nav>
     
-
+    <div class="video-background">
+        <video autoplay muted loop id="myVideo">
+            <source src="{{ url_for('static', filename='index_bg.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
     <!-- Login Form Container -->
     <div class="form-container">
         <h1>Log In</h1>
@@ -44,11 +69,9 @@
         <!-- Login Form -->
         <form method="POST" action="/login">
             <div>
-                
                 <input type="email" id="email" name="email" placeholder="Enter your email" required>
             </div>
             <div>
-                
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
             </div>
             <button type="submit">Login</button>
