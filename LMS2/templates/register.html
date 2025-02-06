@@ -4,7 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - LMS</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='regidter.css') }}">
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            color: white;
+            text-align: center;
+            z-index: 1000;
+        }
+        .form-container {
+            margin-top: 100px; /* Ensures space below navbar */
+        }
+    </style>
 </head>
 {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -16,6 +32,11 @@
     {% endif %}
 {% endwith %}
 <body>
+
+    <nav class="navbar">
+        <div class="navbar-brand">EduForge</div>
+    </nav>
+
     <div class="container">
         <h1>Register</h1>
         <form method="POST" action="/register">

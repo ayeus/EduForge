@@ -5,13 +5,31 @@ from routes.auth_routes import init_auth_routes
 from routes.course_routes import init_course_routes
 from routes.lesson_routes import init_lesson_routes
 from routes.student_routes import init_student_routes
+import openai
+from routes.chatbot_routes import init_chatbot_routes
+
+# Initialize routes
+app = Flask(__name__)
+init_chatbot_routes(app)
+app.secret_key = "2a429ad801baa5a64c5b931fb3244ae1"
+
+# OpenAI Configuration
+#OPENAI_API_KEY = "sk-RMABP6kML3u9me_P3ukzMT665ylGeogjydVJ2K7FO3h8_x5HFSSxetvoSgDvPIMxc3Ev-7K8bvT3BlbkFJFfC4hy-AarRWGhhLybnspVYcKfJcBi-mqpq1sOGO05bveYPJFrt-n3sFq28nM2Bs8k3q-k8eUA"
+
+ # Ensure this variable is set
+
+#OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+#if not OPENAI_API_KEY:
+ #   raise ValueError("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.")
+#openai.api_key = OPENAI_API_KEY
+
+
 
 
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"webm", "mp4", "ogg"}
 
-app = Flask(__name__)
-app.secret_key = "your_secret_key"
+
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 socketio = SocketIO(app)
 
