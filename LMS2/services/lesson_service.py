@@ -24,3 +24,4 @@ def get_lessons_for_course(course_id):
     cursor.close()
     db.close()
     return lessons
+

@@ -1,0 +1,177 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+body {
+    background-color: #f3f3f3;
+    color: #333;
+    line-height: 1.6;
+}
+/* Navbar styles */
+.navbar {
+    background-color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+.brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e3a8a;
+}
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+.nav-link {
+    text-decoration: none;
+    color: #4b5563;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+.nav-link:hover {
+    color: #1e3a8a;
+}
+.logout {
+    padding: 0.5rem 1rem;
+    background-color: #1e3a8a;
+    color: white;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+.logout:hover {
+    background-color: #1e40af;
+}
+/* Container styles */
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+h1 {
+    color: #1e3a8a;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: center;
+}
+h3 {
+    color: #1e3a8a;
+    margin: 2rem 0 1rem;
+    font-size: 1.5rem;
+}
+/* Form styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+    font-weight: 500;
+}
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+input[type="text"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: #1e3a8a;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+/* Lesson section styles */
+.lesson {
+    background-color: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e2e8f0;
+}
+/* Video recording section */
+video {
+    margin: 1rem 0;
+    border-radius: 0.375rem;
+    background-color: #000;
+}
+/* Button styles */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: #1e3a8a;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-right: 1rem;
+}
+.btn:hover {
+    background-color: #1e40af;
+}
+button[type="button"] {
+    background-color: #4b5563;
+}
+button[type="button"]:hover {
+    background-color: #374151;
+}
+button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+/* File upload styles */
+input[type="file"] {
+    display: block;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border: 1px dashed #d1d5db;
+    border-radius: 0.375rem;
+    width: 100%;
+}
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+    .navbar {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .nav-links {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+        width: 100%;
+    }
+    .logout {
+        width: 100%;
+        text-align: center;
+    }
+    .btn {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}

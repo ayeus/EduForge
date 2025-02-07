@@ -3,144 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instructor Dashboard - LMS</title>
+    <title>EduForge - Learning Management System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='id.css') }}">
-    <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
 </head>
 <body>
-
     <!-- Navbar -->
-    <div class="navbar">
-        <span class="brand">EduForge</span>
-        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
-    </div>
-
-    <div class="container">
-        <h1>Welcome, Instructor!</h1>
-        <h2>Create a New Course</h2>
-        <form method="POST" action="{{ url_for('create_course') }}" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="course_name">Course Name:</label>
-                <input type="text" id="course_name" name="course_name" required>
-            </div>
-            <div class="form-group">
-                <label for="description">Course Description:</label>
-                <textarea id="description" name="description" required></textarea>
-            </div>
-
-            <h3>Add Lessons</h3>
-            <div id="lessons">
-                <div class="lesson">
-                    <div class="form-group">
-                        <label for="lesson_name_1">Lesson Name:</label>
-                        <input type="text" id="lesson_name_1" name="lesson_name_1" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lesson_content_1">Lesson Content:</label>
-                        <textarea id="lesson_content_1" name="lesson_content_1" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Record Video:</label>
-                        <video id="preview_1" controls style="width: 100%;"></video>
-                        <button type="button" id="startRecording_1">Start Recording</button>
-                        <button type="button" id="stopRecording_1" disabled>Stop Recording</button>
-                        <input type="hidden" id="video_1" name="video_1">
-                    </div>
-                    <div class="form-group">
-                        <label>Or Upload Video:</label>
-                        <input type="file" id="upload_video_1" name="upload_video_1" accept="video/*">
-                    </div>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-left">
+                <span class="brand">EduForge</span>
+                <div class="nav-links">
+                    <a href="#" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                        Home
+                    </a>
+                    <a href="#" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        About
+                    </a>
+                    <a href="#" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Community
+                    </a>
                 </div>
             </div>
-
-            <button type="button" id="add_lesson" class="btn">Add Another Lesson</button>
-            <button type="submit" class="btn">Create Course</button>
-        </form>
-    </div>
-
-    <script>
-        // JavaScript to dynamically add more lesson fields
-        let lessonCount = 1;
-    
-        document.getElementById("add_lesson").addEventListener("click", function () {
-            lessonCount++;
-            const lessonsDiv = document.getElementById("lessons");
-    
-            const newLesson = document.createElement("div");
-            newLesson.className = "lesson";
-            newLesson.innerHTML = `
-                <div class="form-group">
-                    <label for="lesson_name_${lessonCount}">Lesson Name:</label>
-                    <input type="text" id="lesson_name_${lessonCount}" name="lesson_name_${lessonCount}" required>
+            <a href="{{ url_for('logout') }}" class="logout">
+                <button class="nav-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </button>
+            </a>
+            
+        </div>
+    </nav>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>Transform Your Teaching Experience</h1>
+            <p>Personalize your teaching approach and engage students like never before with EduForge's advanced learning management system.</p>
+            
+            <a href="{{ url_for('create_course') }}" class="get-started-button">Get Started</a>
+        </div>
+    </section>
+    <!-- Features Section -->
+    <section class="features">
+        <div class="features-container">
+            <h2>Designed for Modern Educators</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Personalized Learning Paths</h3>
+                    <p>Create custom learning journeys tailored to individual student needs and learning styles.</p>
                 </div>
-                <div class="form-group">
-                    <label for="lesson_content_${lessonCount}">Lesson Content:</label>
-                    <textarea id="lesson_content_${lessonCount}" name="lesson_content_${lessonCount}" required></textarea>
+                <div class="feature-card">
+                    <h3>Real-time Analytics</h3>
+                    <p>Track student progress and engagement with comprehensive analytics and insights.</p>
                 </div>
-                <div class="form-group">
-                    <label>Record Video:</label>
-                    <video id="preview_${lessonCount}" controls style="width: 100%;"></video>
-                    <button type="button" id="startRecording_${lessonCount}">Start Recording</button>
-                    <button type="button" id="stopRecording_${lessonCount}" disabled>Stop Recording</button>
-                    <input type="file" id="video_${lessonCount}" name="video_${lessonCount}" style="display: none;">
+                <div class="feature-card">
+                    <h3>Interactive Content</h3>
+                    <p>Develop engaging course content with our intuitive tools and templates.</p>
                 </div>
-                <div class="form-group">
-                    <label>Or Upload Video:</label>
-                    <input type="file" id="upload_video_${lessonCount}" name="upload_video_${lessonCount}" accept="video/*">
+            </div>
+        </div>
+    </section>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h3>EduForge</h3>
+                    <p>Transforming education through personalized learning management.</p>
                 </div>
-            `;
-    
-            lessonsDiv.appendChild(newLesson);
-            setupRecording(lessonCount);
-        });
-    
-        // Function to set up video recording
-        function setupRecording(lessonId) {
-            const preview = document.getElementById(`preview_${lessonId}`);
-            const startButton = document.getElementById(`startRecording_${lessonId}`);
-            const stopButton = document.getElementById(`stopRecording_${lessonId}`);
-            const videoInput = document.getElementById(`video_${lessonId}`);
-    
-            let recorder;
-            let stream;
-    
-            startButton.addEventListener("click", async () => {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                preview.srcObject = stream;
-                preview.play();
-    
-                recorder = new RecordRTC(stream, {
-                    type: "video",
-                    mimeType: "video/webm",
-                });
-    
-                recorder.startRecording();
-                startButton.disabled = true;
-                stopButton.disabled = false;
-            });
-    
-            stopButton.addEventListener("click", () => {
-                recorder.stopRecording(() => {
-                    const blob = recorder.getBlob();
-    
-                    // Create a File object from the Blob
-                    const file = new File([blob], `lesson_${lessonId}.webm`, { type: "video/webm" });
-    
-                    // Add the file to the file input
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    videoInput.files = dataTransfer.files;
-    
-                    // Stop the stream
-                    stream.getTracks().forEach(track => track.stop());
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
-                });
-            });
-        }
-    
-        // Set up recording for the first lesson
-        setupRecording(1);
-    </script>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li>aayushnamdeo962@gmail.com.com</li>
+                        <li>+91 8329887767</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2024 EduForge. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

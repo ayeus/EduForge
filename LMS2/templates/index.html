@@ -1,41 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
+<html lang="en">
+  
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Our Learning Platform</title>
+<head>
+    <meta charset="UTF-8"/>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    
+    <title> EduForge-Learning Platform </title>
     <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+   <meta name="author" content="Lovable" />
 </head>
+    
+
+    
 <body>
-    <!-- Video Background -->
-    <div class="video-background">
-        <video autoplay muted loop id="myVideo">
-            <source src="{{ url_for('static', filename='index_bg.mp4') }}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
+    
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="brand">EduForge</div>
+        <a href="{{ url_for('login') }}" class="login-">
+            <button class="login-">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Log In
+            </button>
+        </a>
     </div>
+</nav>
 
-    <!-- Navbar with Login button -->
-    <nav class="navbar">
-        <div class="navbar-brand">EduForge</div>
-       
-        <a href="{{ url_for('login') }}" class="login-button">Login</a>
-    </nav>
 
-    <!-- Main content -->
-    <div class="container">
-        <h1>Welcome to Our Learning Platform</h1>
-        <p>
-            Our platform is designed to help instructors create and manage courses, while students can easily enroll and learn from these courses. Whether you're an instructor or a student, we provide the tools you need to succeed.
-        </p>
-        <h2>For Instructors</h2>
-        <p>
-            Instructors can create courses, add lessons, and upload videos to share their knowledge with students. Our intuitive interface makes it easy to manage your courses and track student progress.
-        </p>
-        <h2>For Students</h2>
-        <p>
-            Students can browse available courses, enroll in their preferred courses, and access video lessons. Our platform ensures a seamless learning experience, allowing you to learn at your own pace.
-        </p>
-    </div>
+    <!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+    <h1> Transform Your Learning Journey</h1>
+    <p>A comprehensive learning platform connecting students with expert instructors</p>
+  
+        </div>
+    </section>
+    <!-- Features Section -->
+    <section class="features">
+        <h2>Why Choose EduForge?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>For Students</h3>
+                <p>Access high-quality courses from expert instructors. Learn at your own pace with comprehensive learning materials.</p>
+            </div>
+            <div class="feature-card">
+                <h3>For Instructors</h3>
+                <p>Create and manage your courses with our intuitive tools. Reach students globally and share your expertise.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Interactive Learning</h3>
+                <p>Engage with video content, quizzes, and assignments. Track your progress and achieve your learning goals.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h3>EduForge</h3>
+                    <p>Transforming education through interactive learning experiences.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Courses</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li>support@eduforge.com</li>
+                        <li>+1 (555) 123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 EduForge. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
