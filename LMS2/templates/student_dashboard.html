@@ -4,40 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - LMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-        <script>
-            (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
-       </script>
-    
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center min-h-screen p-6">
-    <div class="w-full max-w-4xl p-6 space-y-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg relative">
-        <!-- Dark mode toggle button -->
-        <button onclick="toggleDarkMode()" class="absolute top-4 right-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-            🌓
-        </button>
+    <link rel="stylesheet" href="{{ url_for('static', filename='sd.css') }}">
+    <script>
+        (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+   </script>
 
-        <h1 class="text-3xl font-semibold text-gray-900 dark:text-gray-200 text-center">Welcome, Student!</h1>
-        
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-300">Available Courses</h2>
-        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {% for course in courses %}
-            <li class="p-4 bg-blue-100 dark:bg-blue-700 rounded-lg shadow-lg transform transition duration-300 hover:scale-105">
-                <a href="{{ url_for('course_details', course_id=course.course_id) }}" class="text-lg font-bold text-blue-700 dark:text-blue-300 hover:underline">
-                    {{ course.course_name }}
-                </a>
-                <p class="text-gray-700 dark:text-gray-300 mt-2">{{ course.description }}</p>
-            </li>
-            {% endfor %}
-        </ul>
-        
-        <div class="text-center">
-            <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Logout</a>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">EduForge</div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Home</a>
+                <a href="#" class="nav-link">About</a>
+                <a href="#" class="nav-link">Progress</a>
+            </div>
+            <button class="logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Logout
+            </button>
         </div>
+    </nav>
+
+    <div class="container">
+        <h1>Welcome, Student!</h1>
+        
+        <section class="courses-section">
+            <h2>Available Courses</h2>
+            <div class="courses-grid">
+                {% for course in courses %}
+                <div class="course-card">
+                    <div class="course-thumbnail">
+                        <img src="{{ course.thumbnail_url|default('placeholder.jpg') }}" alt="{{ course.course_name }}">
+                        <span class="course-duration">{{ course.duration }}</span>
+                    </div>
+                    <div class="course-info">
+                        <h3>{{ course.course_name }}</h3>
+                        <p>{{ course.description }}</p>
+                        <div class="course-meta">
+                            <span class="lessons-count">{{ course.lessons_count }} lessons</span>
+                            <a href="{{ url_for('course_details', course_id=course.course_id) }}" class="view-course-btn">View Course</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
     </div>
 
-    <!-- Chatbot UI -->
-   
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h3>EduForge</h3>
+                    <p>Transforming education through interactive learning experiences.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Progress</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li>support@eduforge.com</li>
+                        <li>+1 (555) 123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 EduForge. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
