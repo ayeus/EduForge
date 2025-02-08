@@ -5,77 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - LMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Dark mode toggle
-        function toggleDarkMode() {
-            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-            if (isDarkMode) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('darkMode', 'disabled');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('darkMode', 'enabled');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('darkMode') === 'enabled') {
-                document.documentElement.classList.add('dark');
-            }
-        });
-
-        // Chatbot functionality
-        async function sendMessage() {
-            const chatInput = document.getElementById("chat-input");
-            const chatMessages = document.getElementById("chat-messages");
-
-            const userMessage = chatInput.value.trim();
-            if (!userMessage) return;
-
-            // Add user message to chat window
-            const userMessageElement = document.createElement("div");
-            userMessageElement.className = "bg-blue-100 dark:bg-blue-700 p-3 rounded-lg mb-2";
-            userMessageElement.textContent = `You: ${userMessage}`;
-            chatMessages.appendChild(userMessageElement);
-
-            // Clear input
-            chatInput.value = "";
-
-            // Send message to the server
-            try {
-                const response = await fetch("/chat", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ message: userMessage }),
-                });
-
-                const data = await response.json();
-
-                // Add bot response to chat window
-                if (data.message) {
-                    const botMessageElement = document.createElement("div");
-                    botMessageElement.className = "bg-green-100 dark:bg-green-700 p-3 rounded-lg mb-2";
-                    botMessageElement.textContent = `Bot: ${data.message}`;
-                    chatMessages.appendChild(botMessageElement);
-                } else if (data.error) {
-                    const errorMessageElement = document.createElement("div");
-                    errorMessageElement.className = "bg-red-100 dark:bg-red-700 p-3 rounded-lg mb-2";
-                    errorMessageElement.textContent = `Error: ${data.error}`;
-                    chatMessages.appendChild(errorMessageElement);
-                }
-            } catch (error) {
-                console.error("Error sending message:", error);
-            }
-        }
-
-        // Toggle chatbot visibility
-        function toggleChatbot() {
-            const chatbot = document.getElementById("chatbot");
-            chatbot.classList.toggle("hidden");
-        }
-    </script>
+    
+        <script>
+            (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+       </script>
+    
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center min-h-screen p-6">
     <div class="w-full max-w-4xl p-6 space-y-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg relative">
@@ -104,25 +38,6 @@
     </div>
 
     <!-- Chatbot UI -->
-    <div id="chatbot" class="fixed bottom-6 right-6 w-80 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden hidden">
-        <div class="p-4 bg-blue-600 text-white flex justify-between items-center">
-            <h3 class="text-lg font-semibold">Chatbot</h3>
-            <button onclick="toggleChatbot()" class="p-1 bg-blue-700 rounded-full hover:bg-blue-800">
-                ✕
-            </button>
-        </div>
-        <div id="chat-window" class="p-4 h-60 overflow-y-auto bg-gray-50 dark:bg-gray-700">
-            <div id="chat-messages"></div>
-        </div>
-        <div class="p-4 bg-gray-100 dark:bg-gray-700">
-            <input type="text" id="chat-input" placeholder="Type your message..." class="w-full p-2 border rounded-lg">
-            <button onclick="sendMessage()" class="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Send</button>
-        </div>
-    </div>
-
-    <!-- Chatbot toggle button -->
-    <button onclick="toggleChatbot()" class="fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700">
-        💬
-    </button>
+   
 </body>
 </html>
