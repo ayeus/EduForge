@@ -8,7 +8,6 @@
     <script>
         (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
    </script>
-
 </head>
 <body>
     <!-- Navbar -->
@@ -16,9 +15,10 @@
         <div class="nav-container">
             <div class="brand">EduForge</div>
             <div class="nav-links">
-                <a href="#" class="nav-link active">Home</a>
-                <a href="#" class="nav-link">About</a>
-                <a href="#" class="nav-link">Progress</a>
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'student_dashboard' else '' }}">Home</a>
+                <a href="{{ url_for('about') }}" class="nav-link {{ 'active' if request.endpoint == 'about' else '' }}">About</a>
+                
+                <a href="{{ url_for('student_progress', course_id=4) }}" class="nav-link">Progress</a>
             </div>
             <button class="logout-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -26,7 +26,7 @@
                     <polyline points="10 17 15 12 10 7"/>
                     <line x1="15" y1="12" x2="3" y2="12"/>
                 </svg>
-                <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg ">Logout</a>
+                <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg">Logout</a>
             </button>
         </div>
     </nav>
@@ -68,13 +68,10 @@
                 <div class="footer-section">
                     <h4>Quick Links</h4>
                     <ul>
-                        <li><a href="#">Home</a></li>
-                        <li><a href="#">About</a></li>
-                        <li><a href="#">Progress</a></li>
+                        <li><a href="{{ url_for('student_dashboard') }}">Home</a></li>
+                        <li><a href="{{ url_for('about') }}">About</a></li>
+                        <li><a href="{{ url_for('student_progress') }}">Progress</a></li>
                     </ul>
-                </div>
-                <div class="footer-section">
-                    
                 </div>
                 <div class="footer-section">
                     <h4>Contact</h4>
