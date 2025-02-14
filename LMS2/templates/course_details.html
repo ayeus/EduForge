@@ -3,25 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Details - LMS</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>LearnHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='cd.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>Course Lessons</h1>
-        <ul class="lesson-list">
-            {% for lesson in lessons %}
-            <li>
-                <h3>{{ lesson.lesson_name }}</h3>
-                <p>{{ lesson.content }}</p>
-                <video controls>
-                    <source src="{{ url_for('static', filename='uploads/' + lesson.video_filename) }}" type="video/webm">
-                    Your browser does not support the video tag.
-                </video>
-            </li>
-            {% endfor %}
-        </ul>
-        <a href="{{ url_for('student_dashboard') }}" class="btn">Back to Dashboard</a>
+    <div class="app">
+        <!-- Navigation Bar -->
+        <header>
+            <nav class="navbar">
+                <div class="nav-container">
+                    <!-- Logo -->
+                    <h1 class="logo">LearnHub</h1>
+
+                    <!-- Navigation Links -->
+                    <ul class="nav-links">
+                        <li><a href="#" class="active">Home</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Progress</a></li>
+                        <li><a href="#">Videos</a></li>
+                    </ul>
+
+                    <!-- Profile Button -->
+                    <button class="profile-btn">
+                        <span class="sr-only">Profile</span>
+                        <div class="profile-avatar"></div>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Mobile Navigation -->
+            <div class="mobile-nav">
+                <a href="#" class="active">Home</a>
+                <a href="#">About</a>
+                <a href="#">Progress</a>
+                <a href="#">Videos</a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="welcome-card">
+                <h2>Welcome to LearnHub</h2>
+                <p>Start your learning journey today. We offer a wide range of courses to help you achieve your goals.</p>
+            </div>
+
+            <!-- Featured Section -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Popular Courses</h3>
+                    <p>Explore our most popular learning paths</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Your Progress</h3>
+                    <p>Track your learning journey</p>
+                </div>
+                <div class="feature-card">
+                    <h3>New Videos</h3>
+                    <p>Latest content from our instructors</p>
+                </div>
+            </div>
+        </main>
     </div>
 </body>
 </html>
