@@ -106,6 +106,13 @@ body {
     display: block;
     transition: background 0.2s;
 }
+.dropdown-item2 {
+    padding: 8px 16px;
+    color: #ff0000;
+    text-decoration: none;
+    display: block;
+    transition: background 0.2s;
+}
 .dropdown-item:hover {
     background: #e8f0fe;
 }
