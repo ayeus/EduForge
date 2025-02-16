@@ -6,6 +6,7 @@ from utils import allowed_file  # Import the allowed_file function
 import os
 
 app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = "uploads"  # Set the upload folder
 
 # Initialize routes
 def init_course_routes(app):
@@ -28,8 +29,13 @@ def init_course_routes(app):
             description = request.form.get("description")
             instructor_id = session["user_id"]
 
+            if not course_name or not description:
+                flash("Course name and description are required!", "error")
+                return redirect(url_for("create_course"))
+
+            db = None
+            cursor = None
             try:
-                # Create the course
                 db = get_db_connection()
                 cursor = db.cursor()
                 query = "INSERT INTO Courses (course_name, description, instructor_id) VALUES (%s, %s, %s)"
@@ -64,10 +70,11 @@ def init_course_routes(app):
                     lesson_count += 1
 
                 db.commit()
-                flash("Course and lessons created successfully!")
+                flash("Course and lessons created successfully!", "success")
             except Exception as e:
-                db.rollback()
-                flash(f"Failed to create course: {str(e)}")
+                if db:
+                    db.rollback()
+                flash(f"Failed to create course: {str(e)}", "error")
             finally:
                 if cursor:
                     cursor.close()
@@ -84,7 +91,7 @@ def init_course_routes(app):
         user_id = session["user_id"]
         try:
             enroll_user_service(user_id, course_id)
-            flash("Enrolled successfully!")
+            flash("Enrolled successfully!", "success")
         except Exception as e:
-            flash(f"Failed to enroll: {str(e)}")
+            flash(f"Failed to enroll: {str(e)}", "error")
         return redirect(url_for("student_dashboard"))

@@ -12,27 +12,53 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar">
-        <div class="nav-container">
-            <div class="brand">EduForge</div>
-            <div class="nav-links">
-                <a href="{{ url_for('student_dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'student_dashboard' else '' }}">Home</a>
-                <a href="{{ url_for('about') }}" class="nav-link {{ 'active' if request.endpoint == 'about' else '' }}">About</a>
-                
-                <a href="{{ url_for('student_progress', course_id=4) }}" class="nav-link">Progress</a>
+        <div class="navbar-content">
+            <span class="brand">EduForge</span>
+            
+                <div class="nav-links">
+                    <a href="{{ url_for('student_dashboard') }}" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                        Home
+                    </a>
+                    <a href="#" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        About
+                    </a>
+                    <a href="#" class="nav-button">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Community
+                    </a>
+                </div>
+                <button class="profile-button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
             </div>
-            <button class="logout-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10 17 15 12 10 7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg">Logout</a>
-            </button>
+            
+            <!-- Dropdown menu structure -->
+            <div class="dropdown-menu">
+                <a href="{{ url_for('student_progress', course_id=4) }}" class="dropdown-item">Progress</a>
+                <a href="#" class="dropdown-item"></a>
+                <a href="{{ url_for('logout') }}" class="dropdown-item">Logout</a>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-        <h1>Welcome, Student!</h1>
+       
         
         <section class="courses-section">
             <h2>Available Courses</h2>
@@ -56,6 +82,18 @@
             </div>
         </section>
     </div>
+    <script>
+        document.querySelector('.profile-button').addEventListener('click', function() {
+            document.querySelector('.dropdown-menu').classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.profile-button')) {
+                document.querySelector('.dropdown-menu').classList.remove('active');
+            }
+        });
+    </script>
 
     <!-- Footer -->
     <footer class="footer">
@@ -76,8 +114,8 @@
                 <div class="footer-section">
                     <h4>Contact</h4>
                     <ul>
-                        <li>support@eduforge.com</li>
-                        <li>+1 (555) 123-4567</li>
+                        <li>aayushnamdeo92@gmail.com</li>
+                        <li>329887768</li>
                     </ul>
                 </div>
             </div>
@@ -86,5 +124,6 @@
             </div>
         </div>
     </footer>
+    
 </body>
 </html>
