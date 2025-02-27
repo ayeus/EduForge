@@ -3,51 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Details - LMS</title>
+    <title>{{ course_name }} - LMS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='cd.css') }}">
 </head>
 <body>
-    <!-- Added navbar structure -->
     <nav class="navbar">
         <div class="navbar-content">
             <span class="brand">EduForge</span>
-                <div class="nav-links">
-                    <a href="{{ url_for('student_dashboard') }}" class="nav-button">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        </svg>
-                        Home
-                    </a>
-                    <a href="#" class="nav-button">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        About
-                    </a>
-                    <a href="#" class="nav-button">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        Community
-                    </a>
-                </div>
-                <button class="profile-button">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+            <div class="nav-links">
+                <a href="{{ url_for('student_dashboard') }}" class="nav-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     </svg>
-                </button>
+                    Home
+                </a>
+                <a href="{{ url_for('about') }}" class="nav-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    About
+                </a>
+                <a href="#" class="nav-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Community
+                </a>
             </div>
-            
-            <!-- Dropdown menu structure -->
+            <button class="profile-button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </button>
             <div class="dropdown-menu">
-                <a href="{{ url_for('student_progress', course_id=4) }}" class="dropdown-item">Progress</a>
-                <a href="#" class="dropdown-item"></a>
+                <a href="{{ url_for('student_progress', course_id=course_id) }}" class="dropdown-item">Progress</a>
                 <a href="{{ url_for('logout') }}" class="dropdown-item">Logout</a>
             </div>
         </div>
@@ -55,37 +50,41 @@
 
     <div class="container">
         <header class="course-header">
-            <h1>Course Lessons</h1>
-           
+            <h1>{{ course_name }}</h1>
         </header>
 
         <section class="lesson-section">
             <ul class="lesson-list">
-                {% for lesson in lessons %}
-                <li class="lesson-item">
-                    <div class="lesson-content">
-                        <h3 class="lesson-title">{{ lesson.lesson_name }}</h3>
-                        <p class="lesson-description">{{ lesson.content }}</p>
-                        <div class="lesson-media">
-                            <video controls class="lesson-video">
-                                <source src="{{ url_for('get_video', lesson_id=lesson.lesson_id) }}" type="video/webm">
-                                Your browser does not support the video tag.
-                            </video>
+                {% if lessons %}
+                    {% for lesson in lessons %}
+                    <li class="lesson-item">
+                        <div class="lesson-content">
+                            <h3 class="lesson-title">{{ lesson['lesson_name'] }}</h3>
+                            <p class="lesson-description">{{ lesson['content'] | safe }}</p>
+                            <div class="lesson-media">
+                                {% if lesson['video_filename'] %}
+                                    <video controls class="lesson-video">
+                                        <source src="{{ url_for('get_video', lesson_id=lesson['lesson_id']) }}" type="{{ 'video/' + lesson['video_filename'].split('.')[-1] }}">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                {% else %}
+                                    <p>No video available for this lesson.</p>
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
-                </li>
-                {% endfor %}
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li>No lessons available for this course.</li>
+                {% endif %}
             </ul>
         </section>
     </div>
 
-    <!-- Add JavaScript for dropdown functionality -->
     <script>
         document.querySelector('.profile-button').addEventListener('click', function() {
             document.querySelector('.dropdown-menu').classList.toggle('active');
         });
-
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             if (!event.target.closest('.profile-button')) {
                 document.querySelector('.dropdown-menu').classList.remove('active');

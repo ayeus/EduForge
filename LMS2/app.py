@@ -7,6 +7,9 @@ from routes.lesson_routes import init_lesson_routes
 from routes.student_routes import init_student_routes
 import openai
 from routes.chatbot_routes import init_chatbot_routes
+from flask import send_from_directory
+
+
 
 # Initialize routes
 app = Flask(__name__)
@@ -27,7 +30,7 @@ app.secret_key = "2a429ad801baa5a64c5b931fb3244ae1"
 
 
 UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"webm", "mp4", "ogg"}
+ALLOWED_EXTENSIONS = {'mp4'}
 
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER

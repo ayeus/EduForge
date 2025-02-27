@@ -38,6 +38,7 @@ def init_course_routes(app):
             try:
                 db = get_db_connection()
                 cursor = db.cursor()
+                # Create the course
                 query = "INSERT INTO Courses (course_name, description, instructor_id) VALUES (%s, %s, %s)"
                 values = (course_name, description, instructor_id)
                 cursor.execute(query, values)
@@ -48,24 +49,24 @@ def init_course_routes(app):
                 while True:
                     lesson_name = request.form.get(f"lesson_name_{lesson_count}")
                     lesson_content = request.form.get(f"lesson_content_{lesson_count}")
-                    recorded_video = request.files.get(f"video_{lesson_count}")
                     uploaded_video = request.files.get(f"upload_video_{lesson_count}")
 
                     if not lesson_name or not lesson_content:
                         break  # Stop if no more lessons are found
 
-                    # Handle recorded or uploaded video
+                    # Handle uploaded video
+                    video_data = None
                     video_filename = None
-                    if recorded_video and allowed_file(recorded_video.filename):
-                        video_filename = f"course_{course_id}_lesson_{lesson_count}_recorded.webm"
-                        recorded_video.save(os.path.join(app.config["UPLOAD_FOLDER"], video_filename))
-                    elif uploaded_video and allowed_file(uploaded_video.filename):
-                        video_filename = f"course_{course_id}_lesson_{lesson_count}_uploaded.webm"
-                        uploaded_video.save(os.path.join(app.config["UPLOAD_FOLDER"], video_filename))
+                    if uploaded_video and allowed_file(uploaded_video.filename):
+                        video_filename = uploaded_video.filename  # e.g., "myvideo.mp4"
+                        video_data = uploaded_video.read()  # Read binary data for LONGBLOB
+                        print(f"Uploaded video size for lesson {lesson_count}: {len(video_data)} bytes")
+                        # Optionally save to uploads folder for debugging
+                        # uploaded_video.save(os.path.join(app.config["UPLOAD_FOLDER"], video_filename))
 
                     # Save lesson to database
-                    query = "INSERT INTO Lessons (course_id, lesson_name, content, video_filename) VALUES (%s, %s, %s, %s)"
-                    values = (course_id, lesson_name, lesson_content, video_filename)
+                    query = "INSERT INTO Lessons (course_id, lesson_name, content, video, video_filename) VALUES (%s, %s, %s, %s, %s)"
+                    values = (course_id, lesson_name, lesson_content, video_data, video_filename)
                     cursor.execute(query, values)
                     lesson_count += 1
 

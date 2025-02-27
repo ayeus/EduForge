@@ -21,6 +21,13 @@
     <!-- Course Creation Form -->
     <div class="container">
         <h1>Create a New Course</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="{{ category }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         <form method="POST" action="{{ url_for('create_course') }}" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="course_name">Course Name:</label>
@@ -42,10 +49,9 @@
                         <label for="lesson_content_1">Lesson Content:</label>
                         <textarea id="lesson_content_1" name="lesson_content_1" required></textarea>
                     </div>
-                   
                     <div class="form-group">
-                        <label>Or Upload Video:</label>
-                        <input type="file" id="upload_video_1" name="upload_video_1" accept="video/*">
+                        <label for="upload_video_1">Upload Video (.mp4):</label>
+                        <input type="file" id="upload_video_1" name="upload_video_1" accept="video/mp4">
                     </div>
                 </div>
             </div>
@@ -75,69 +81,13 @@
                     <textarea id="lesson_content_${lessonCount}" name="lesson_content_${lessonCount}" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Record Video:</label>
-                    <video id="preview_${lessonCount}" controls style="width: 100%;"></video>
-                    <button type="button" id="startRecording_${lessonCount}">Start Recording</button>
-                    <button type="button" id="stopRecording_${lessonCount}" disabled>Stop Recording</button>
-                    <input type="hidden" id="video_${lessonCount}" name="video_${lessonCount}">
-                </div>
-                <div class="form-group">
-                    <label>Or Upload Video:</label>
-                    <input type="file" id="upload_video_${lessonCount}" name="upload_video_${lessonCount}" accept="video/*">
+                    <label for="upload_video_${lessonCount}">Upload Video (.mp4):</label>
+                    <input type="file" id="upload_video_${lessonCount}" name="upload_video_${lessonCount}" accept="video/mp4">
                 </div>
             `;
 
             lessonsDiv.appendChild(newLesson);
-            setupRecording(lessonCount);
         });
-
-        // Function to set up video recording
-        function setupRecording(lessonId) {
-            const preview = document.getElementById(`preview_${lessonId}`);
-            const startButton = document.getElementById(`startRecording_${lessonId}`);
-            const stopButton = document.getElementById(`stopRecording_${lessonId}`);
-            const videoInput = document.getElementById(`video_${lessonId}`);
-
-            let recorder;
-            let stream;
-
-            startButton.addEventListener("click", async () => {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                preview.srcObject = stream;
-                preview.play();
-
-                recorder = new RecordRTC(stream, {
-                    type: "video",
-                    mimeType: "video/webm",
-                });
-
-                recorder.startRecording();
-                startButton.disabled = true;
-                stopButton.disabled = false;
-            });
-
-            stopButton.addEventListener("click", () => {
-                recorder.stopRecording(() => {
-                    const blob = recorder.getBlob();
-
-                    // Create a File object from the Blob
-                    const file = new File([blob], `lesson_${lessonId}.webm`, { type: "video/webm" });
-
-                    // Add the file to the file input
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    videoInput.files = dataTransfer.files;
-
-                    // Stop the stream
-                    stream.getTracks().forEach(track => track.stop());
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
-                });
-            });
-        }
-
-        // Set up recording for the first lesson
-        setupRecording(1);
     </script>
 </body>
 </html>
