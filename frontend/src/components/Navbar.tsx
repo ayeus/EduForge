@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import {Button} from '@/components/ui/button';
 import { LogIn, UserPlus, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
