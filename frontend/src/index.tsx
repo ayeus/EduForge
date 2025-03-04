@@ -1,25 +1,19 @@
-import { useEffect } from "react";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import Hero from "./components/Hero";
-import Features from "./components/Features";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
 
-const Index = () => {
-  useEffect(() => {
-    // Scroll to top when component mounts
-    window.scrollTo(0, 0);
-  }, []);
-  
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main>
-        <Hero />
-        <Features />
-      </main>
-      <Footer />
-    </div>
-  );
-};
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
-export default Index;
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
