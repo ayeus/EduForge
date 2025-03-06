@@ -24,7 +24,7 @@
     font-weight: bold;
     color: white;
     background: linear-gradient(to right, rgb(0, 0, 0) , rgb(35, 154, 178) );
-    -webkit-background-clip: text;
+    
     -webkit-text-fill-color: transparent;
 }
 /* Form Container */

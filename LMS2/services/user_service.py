@@ -20,4 +20,4 @@ def login_user(email, password):
 
     if user_data and verify_password(password, user_data['password_hash']):
         return User(**user_data)  # Return User object
-    return None  # Login failed
+    return None
