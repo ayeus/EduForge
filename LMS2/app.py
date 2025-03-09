@@ -16,15 +16,15 @@ app = Flask(__name__)
 init_chatbot_routes(app)
 app.secret_key = "2a429ad801baa5a64c5b931fb3244ae1"
 
-# OpenAI Configuration
-#OPENAI_API_KEY = "sk-RMABP6kML3u9me_P3ukzMT665ylGeogjydVJ2K7FO3h8_x5HFSSxetvoSgDvPIMxc3Ev-7K8bvT3BlbkFJFfC4hy-AarRWGhhLybnspVYcKfJcBi-mqpq1sOGO05bveYPJFrt-n3sFq28nM2Bs8k3q-k8eUA"
+ OpenAI Configuration
+OPENAI_API_KEY = "sk-RMABP6kML3u9me_P3ukzMT665ylGeogjydVJ2K7FO3h8_x5HFSSxetvoSgDvPIMxc3Ev-7K8bvT3BlbkFJFfC4hy-AarRWGhhLybnspVYcKfJcBi-mqpq1sOGO05bveYPJFrt-n3sFq28nM2Bs8k3q-k8eUA"
 
- # Ensure this variable is set
+ Ensure this variable is set
 
-#OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-#if not OPENAI_API_KEY:
- #   raise ValueError("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.")
-#openai.api_key = OPENAI_API_KEY
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+ raise ValueError("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.")
+openai.api_key = OPENAI_API_KEY
 
 
 
