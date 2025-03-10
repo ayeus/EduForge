@@ -1,12 +1,9 @@
-from flask import request, redirect, url_for, session, flash, render_template, Flask
+from flask import request, redirect, url_for, session, flash, render_template
 from services.course_service import create_course_service, get_all_courses
 from services.enrollment_service import enroll_user_service
 from database.db_connection import get_db_connection
 from utils import allowed_file  # Import the allowed_file function
 import os
-
-app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"  # Set the upload folder
 
 # Initialize routes
 def init_course_routes(app):
@@ -96,3 +93,34 @@ def init_course_routes(app):
         except Exception as e:
             flash(f"Failed to enroll: {str(e)}", "error")
         return redirect(url_for("student_dashboard"))
+
+    @app.route("/course/<int:course_id>")
+    def course_details(course_id):
+        # Fetch the course details from the database
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Courses WHERE course_id = %s", (course_id,))
+        course = cursor.fetchone()
+        cursor.close()
+        db.close()
+
+        if not course:
+            flash("Course not found.", "error")
+            return redirect(url_for("student_dashboard"))
+
+        # Fetch lessons for the course
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Lessons WHERE course_id = %s", (course_id,))
+        lessons = cursor.fetchall()
+        cursor.close()
+        db.close()
+
+        # Render the template with course and lessons data
+        return render_template(
+            "course_details.html",
+            course=course,  # Pass the course object to the template
+            lessons=lessons,
+            course_name=course['course_name'],
+            course_id=course_id
+        )

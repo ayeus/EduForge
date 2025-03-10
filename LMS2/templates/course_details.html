@@ -53,6 +53,16 @@
             <h1>{{ course_name }}</h1>
         </header>
 
+        <!-- Messaging Section -->
+        <section class="messaging-section">
+            <h2>Message Instructor</h2>
+            <form id="messageForm">
+                <textarea id="messageContent" placeholder="Type your message here..." required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </section>
+
+        <!-- Lessons Section -->
         <section class="lesson-section">
             <ul class="lesson-list">
                 {% if lessons %}
@@ -82,6 +92,7 @@
     </div>
 
     <script>
+        // Dropdown menu functionality
         document.querySelector('.profile-button').addEventListener('click', function() {
             document.querySelector('.dropdown-menu').classList.toggle('active');
         });
@@ -90,6 +101,53 @@
                 document.querySelector('.dropdown-menu').classList.remove('active');
             }
         });
+
+        // Message form submission
+       
+        document.getElementById('messageForm').onsubmit = function(e) {
+            e.preventDefault();
+            const content = document.getElementById('messageContent').value;
+            const student_id = {{ current_user.user_id if current_user else 'null' }};  // Handle case where current_user is not available
+            const instructor_id = {{ course.instructor_id }};  // Use the course object passed to the template
+            const course_id = {{ course.course_id }};  // Use the course object passed to the template
+    
+            if (!student_id) {
+                alert("You must be logged in to send a message.");
+                return;
+            }
+    
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_id: student_id,
+                    instructor_id: instructor_id,
+                    course_id: course_id,
+                    content: content
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();  // Parse the JSON response
+            })
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);  // Show error message if something went wrong
+                } else {
+                    alert(data.message);  // Show success message
+                    document.getElementById('messageContent').value = '';  // Clear the textarea
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred while sending the message.");
+            });
+        };
+        
     </script>
 </body>
 </html>

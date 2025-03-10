@@ -1,5 +1,6 @@
 from flask import render_template, request, redirect, url_for, session, flash
 from services.user_service import register_user, login_user
+from database.db_connection import get_db_connection
 
 def init_auth_routes(app):
     @app.route("/")
@@ -50,4 +51,6 @@ def init_auth_routes(app):
     @app.route("/logout")
     def logout():
         session.pop("user_id", None)
+        session.pop("role", None)
+        flash("You have been logged out.", "success")
         return redirect(url_for("login"))

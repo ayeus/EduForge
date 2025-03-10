@@ -13,31 +13,7 @@ def init_student_routes(app):
         courses = get_all_courses()
         return render_template("student_dashboard.html", courses=courses)
 
-    @app.route("/course/<int:course_id>")
-    def course_details(course_id):
-        if "user_id" not in session or session.get("role") != "student":
-            return redirect(url_for("login"))
-
-        # Fetch lessons
-        lessons = get_lessons_for_course(course_id)
-        
-        # Fetch course name
-        db = get_db_connection()
-        cursor = db.cursor()
-        try:
-            cursor.execute("SELECT course_name FROM Courses WHERE course_id = %s", (course_id,))
-            result = cursor.fetchone()
-            if not result:
-                return "Course not found", 404
-            course_name = result[0]
-        finally:
-            cursor.close()
-            db.close()
-
-        # Debug
-        print("Lessons:", lessons)
-
-        return render_template("course_details.html", lessons=lessons, course_name=course_name, course_id=course_id)
+   
 
     @app.route("/student/about")
     def about():

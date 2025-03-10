@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduForge - Learning Management System</title>
+    <title>EduForge - Instructor Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='id.css') }}">
     <script>
         (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
@@ -16,7 +16,7 @@
             <div class="navbar-left">
                 <span class="brand">EduForge</span>
                 <div class="nav-links">
-                    <a href="#" class="nav-button">
+                    <a href="{{ url_for('instructor_dashboard') }}" class="nav-button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         </svg>
@@ -51,38 +51,58 @@
                     Logout
                 </button>
             </a>
-            
         </div>
     </nav>
+
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-container">
-            <h1>Transform Your Teaching Experience</h1>
-            <p>Personalize your teaching approach and engage students like never before with EduForge's advanced learning management system.</p>
-            
-            <a href="{{ url_for('create_course') }}" class="get-started-button">Get Started</a>
+            <h1>Welcome, Instructor!</h1>
+            <p>Manage your courses, track student progress, and communicate with your students effectively.</p>
+            <a href="{{ url_for('create_course') }}" class="get-started-button">Create New Course</a>
         </div>
     </section>
+
+    <!-- Messages Section -->
+    <section class="messages-section">
+        <h2>Messages from Students</h2>
+        <div class="messages-container">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="message-card">
+                    <h3>Course: {{ message.course_name }}</h3>
+                    <p><strong>From:</strong> {{ message.student_name }}</p>
+                    <p><strong>Message:</strong> {{ message.content }}</p>
+                    <p><strong>Date:</strong> {{ message.timestamp }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No messages to display.</p>
+            {% endif %}
+        </div>
+    </section>
+
     <!-- Features Section -->
     <section class="features">
         <div class="features-container">
-            <h2>Designed for Modern Educators</h2>
+            <h2>Your Tools</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3>Personalized Learning Paths</h3>
-                    <p>Create custom learning journeys tailored to individual student needs and learning styles.</p>
+                    <h3>Course Management</h3>
+                    <p>Create, update, and manage your courses with ease.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Real-time Analytics</h3>
-                    <p>Track student progress and engagement with comprehensive analytics and insights.</p>
+                    <h3>Student Progress</h3>
+                    <p>Track and analyze student performance and engagement.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Interactive Content</h3>
-                    <p>Develop engaging course content with our intuitive tools and templates.</p>
+                    <h3>Communication</h3>
+                    <p>Stay connected with your students through messages and announcements.</p>
                 </div>
             </div>
         </div>
     </section>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
@@ -99,11 +119,10 @@
                         <li><a href="#">Community</a></li>
                     </ul>
                 </div>
-                
                 <div class="footer-section">
                     <h4>Contact</h4>
                     <ul>
-                        <li>aayushnamdeo962@gmail.com.com</li>
+                        <li>aayushnamdeo962@gmail.com</li>
                         <li>+91 8329887767</li>
                     </ul>
                 </div>
