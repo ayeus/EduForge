@@ -9,7 +9,18 @@ from routes.chatbot_routes import init_chatbot_routes
 from routes.message_routes import message_bp
 from models.user import User  # Import the User class
 from flask_cors import CORS
+import hashlib
+import hmac
 
+secret = "0u467aa4hwubw5d35uqiz3qftg0jl9l9"  # Get this from Chatbase dashboard
+user_id = "d9428888-122b-11e1-b85c-61cd3cbb3210"    # Your user's unique identifier
+
+# Generate hash
+user_hash = hmac.new(
+    secret.encode('utf-8'),
+    user_id.encode('utf-8'),
+    hashlib.sha256
+).hexdigest()
 
 
 
@@ -25,6 +36,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # Initialize SocketIO
 socketio = SocketIO(app)
+
 
 # Fetch the logged-in user before each request
 @app.before_request

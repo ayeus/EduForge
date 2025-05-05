@@ -90,6 +90,20 @@
             </ul>
         </section>
     </div>
+    <video id="lesson-video" src="{{ lesson.video_url }}" controls></video>
+<button onclick="markCompleted({{ lesson.lesson_id }})">Mark as Completed</button>
+
+<script>
+function markCompleted(lessonId) {
+    fetch(`/update_completion/${lessonId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'completed=true'
+    }).then(response => response.json()).then(data => {
+        alert(data.message);
+    });
+}
+</script>
 
     <script>
         // Dropdown menu functionality

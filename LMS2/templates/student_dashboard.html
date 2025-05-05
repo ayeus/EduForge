@@ -6,8 +6,20 @@
     <title>Student Dashboard - LMS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='sd.css') }}">
     <script>
-        (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="qTccc4pzbJGqPQ9X7RNI3";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
-   </script>
+        window.chatbaseUserConfig = {
+            user_id: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+            user_hash: "9a7c7a5e7a0e0e9f7b5c5e5c5e5c5e5c5e5c5e5c5e5c5e5c5e5c5e5c5e5c5e5c",
+            user_metadata: {
+                "name": "John Doe",
+                "email": "john@example.com"
+                // Add other user info as needed
+            }
+        }
+        </script>
+        <script>
+            (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="RIENCb-B9y4ZvPrzY1oKe";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+            </script>
+
 </head>
 <body>
     <!-- Navbar -->
@@ -56,6 +68,7 @@
             </div>
         </div>
     </nav>
+    
 
     <div class="container">
        
@@ -82,6 +95,10 @@
             </div>
         </section>
     </div>
+
+    <!-- Chatbot iframe -->
+    
+
     <script>
         document.querySelector('.profile-button').addEventListener('click', function() {
             document.querySelector('.dropdown-menu').classList.toggle('active');
@@ -124,6 +141,7 @@
             </div>
         </div>
     </footer>
+    
     
 </body>
 </html>

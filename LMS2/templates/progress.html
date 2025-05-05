@@ -1,53 +1,13 @@
+<!-- templates/progress.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Progress - EduForge</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="brand">EduForge</div>
-            <div class="nav-links">
-                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Home</a>
-                <a href="{{ url_for('about') }}" class="nav-link">About</a>
-                <a href="{{ url_for('student_progress') }}" class="nav-link active">Progress</a>
-            </div>
-            <button class="logout-btn">
-                <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg">Logout</a>
-            </button>
-        </div>
-    </nav>
-
-    <div class="container">
-        <h1>Your Progress</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Course</th>
-                    <th>Lessons Completed</th>
-                    <th>Overall Progress</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in progress %}
-                <tr>
-                    <td>{{ item.course_name }}</td>
-                    <td>{{ item.lessons_completed }}/{{ item.total_lessons }}</td>
-                    <td>{{ item.progress_percentage }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <p>&copy; 2024 EduForge. All rights reserved.</p>
-        </div>
-    </footer>
+    <h1>Your Progress</h1>
+    <p>Total Videos: {{ progress.total_videos }}</p>
+    <p>Videos Completed: {{ progress.completed_videos }}</p>
+    <p>Progress: {{ progress.progress_percentage }}%</p>
 </body>
 </html>

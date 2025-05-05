@@ -31,20 +31,30 @@ body {
     color: #1e3a8a;
 }
 .login- {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    background-color: rgb(255, 255, 255);
+    color: rgb(17, 26, 164);
+    
     padding: 0.5rem 1rem;
-    background: #1e3a8a;
-    color: white;
+    border-radius: 9999px;
+    transition: var(--transition);
     border: none;
-    border-radius: 0.375rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.875rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    box-shadow: var(--shadow-md);
 }
-.login-btn:hover {
-    background: #1e40af;
+.login-:hover {
+    background-color:rgb(0, 37, 160);
+    color: rgb(255, 255, 255);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transition: 0.2s ease-in-out;
 }
+
+   
 /* Hero section styles */
 .hero {
     padding: 8rem 1rem 5rem;

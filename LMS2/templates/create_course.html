@@ -54,8 +54,8 @@
                         <input type="file" id="upload_video_1" name="upload_video_1" accept="video/mp4">
                     </div>
                     <div class="form-group">
-                        <label for="upload_video_1">Upload files (.pdf , .pptx):</label>
-                        <input type="file" id="upload_video_1" name="upload_video_1" accept="video/mp4">
+                        <label for="upload_file_1">Upload Files (.pdf, .pptx):</label>
+                        <input type="file" id="upload_file_1" name="upload_file_1" accept=".pdf,.pptx">
                     </div>
                 </div>
             </div>
@@ -88,85 +88,88 @@
                     <label for="upload_video_${lessonCount}">Upload Video (.mp4):</label>
                     <input type="file" id="upload_video_${lessonCount}" name="upload_video_${lessonCount}" accept="video/mp4">
                 </div>
+                <div class="form-group">
+                    <label for="upload_file_${lessonCount}">Upload Files (.pdf, .pptx):</label>
+                    <input type="file" id="upload_file_${lessonCount}" name="upload_file_${lessonCount}" accept=".pdf,.pptx">
+                </div>
             `;
 
             lessonsDiv.appendChild(newLesson);
         });
-    </script>
-    <script>
+
         // Add auto-resize functionality to all textareas
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all textareas
-    const textareas = document.querySelectorAll('textarea');
-    textareas.forEach(textarea => {
-      // Set initial height
-      adjustHeight(textarea);
-      
-      // Add input event listener
-      textarea.addEventListener('input', function() {
-        adjustHeight(this);
-      });
-      
-      // Focus and blur effects
-      textarea.addEventListener('focus', function() {
-        this.classList.add('textarea-animating');
-      });
-      
-      textarea.addEventListener('blur', function() {
-        this.classList.remove('textarea-animating');
-      });
-    });
-    
-    // Function to adjust height of textarea
-    function adjustHeight(textarea) {
-      // Reset height to auto to get the correct scrollHeight
-      textarea.style.height = 'auto';
-      // Set height to scrollHeight + borderWidth
-      textarea.style.height = (textarea.scrollHeight) + 'px';
-    }
-    
-    // Add animation to lessons when added
-    const addLessonBtn = document.getElementById('add_lesson');
-    if (addLessonBtn) {
-      addLessonBtn.addEventListener('click', function() {
-        // Give time for the new lesson to be added to the DOM
-        setTimeout(() => {
-          const lessons = document.querySelectorAll('.lesson');
-          const newLesson = lessons[lessons.length - 1];
-          
-          // Apply animation
-          newLesson.style.opacity = '0';
-          newLesson.style.transform = 'translateX(30px)';
-          
-          // Trigger reflow
-          void newLesson.offsetWidth;
-          
-          // Apply animation
-          newLesson.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-          newLesson.style.opacity = '1';
-          newLesson.style.transform = 'translateX(0)';
-          
-          // Initialize textareas in the new lesson
-          const newTextareas = newLesson.querySelectorAll('textarea');
-          newTextareas.forEach(textarea => {
-            adjustHeight(textarea);
-            
-            textarea.addEventListener('input', function() {
-              adjustHeight(this);
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all textareas
+            const textareas = document.querySelectorAll('textarea');
+            textareas.forEach(textarea => {
+                // Set initial height
+                adjustHeight(textarea);
+                
+                // Add input event listener
+                textarea.addEventListener('input', function() {
+                    adjustHeight(this);
+                });
+                
+                // Focus and blur effects
+                textarea.addEventListener('focus', function() {
+                    this.classList.add('textarea-animating');
+                });
+                
+                textarea.addEventListener('blur', function() {
+                    this.classList.remove('textarea-animating');
+                });
             });
             
-            textarea.addEventListener('focus', function() {
-              this.classList.add('textarea-animating');
-            });
+            // Function to adjust height of textarea
+            function adjustHeight(textarea) {
+                // Reset height to auto to get the correct scrollHeight
+                textarea.style.height = 'auto';
+                // Set height to scrollHeight + borderWidth
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
             
-            textarea.addEventListener('blur', function() {
-              this.classList.remove('textarea-animating');
-            });
-          });
-        }, 10);
-      });
-    }
-  });
+            // Add animation to lessons when added
+            const addLessonBtn = document.getElementById('add_lesson');
+            if (addLessonBtn) {
+                addLessonBtn.addEventListener('click', function() {
+                    // Give time for the new lesson to be added to the DOM
+                    setTimeout(() => {
+                        const lessons = document.querySelectorAll('.lesson');
+                        const newLesson = lessons[lessons.length - 1];
+                        
+                        // Apply animation
+                        newLesson.style.opacity = '0';
+                        newLesson.style.transform = 'translateX(30px)';
+                        
+                        // Trigger reflow
+                        void newLesson.offsetWidth;
+                        
+                        // Apply animation
+                        newLesson.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        newLesson.style.opacity = '1';
+                        newLesson.style.transform = 'translateX(0)';
+                        
+                        // Initialize textareas in the new lesson
+                        const newTextareas = newLesson.querySelectorAll('textarea');
+                        newTextareas.forEach(textarea => {
+                            adjustHeight(textarea);
+                            
+                            textarea.addEventListener('input', function() {
+                                adjustHeight(this);
+                            });
+                            
+                            textarea.addEventListener('focus', function() {
+                                this.classList.add('textarea-animating');
+                            });
+                            
+                            textarea.addEventListener('blur', function() {
+                                this.classList.remove('textarea-animating');
+                            });
+                        });
+                    }, 10);
+                });
+            }
+        });
     </script>
 </body>
 </html>
