@@ -1,9 +1,10 @@
 from flask import render_template, request, redirect, url_for, session, flash, Response
 from services.course_service import get_all_courses
 from services.lesson_service import get_lessons_for_course
-from services.progress_service import get_student_progress
+from services.progress_service import get_student_progress, get_progress_summary
 from database.db_connection import get_db_connection
 import mimetypes
+
 
 def init_student_routes(app):
     @app.route("/student/dashboard")
@@ -12,8 +13,6 @@ def init_student_routes(app):
             return redirect(url_for("login"))
         courses = get_all_courses()
         return render_template("student_dashboard.html", courses=courses)
-
-   
 
     @app.route("/student/about")
     def about():
@@ -25,13 +24,36 @@ def init_student_routes(app):
     def student_progress():
         if "user_id" not in session or session.get("role") != "student":
             return redirect(url_for("login"))
+
         student_id = session.get("user_id")
         course_id = request.args.get("course_id", type=int)
+
         if not course_id:
             flash("Course ID is required.", "error")
             return redirect(url_for("student_dashboard"))
-        progress = get_student_progress(student_id, course_id)
-        return render_template("progress.html", progress=progress, course_id=course_id)
+
+        # Get both summary and detailed progress
+        progress_summary = get_progress_summary(student_id, course_id)
+        detailed_progress = get_student_progress(student_id, course_id)
+
+        # Get course name
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT course_name FROM Courses WHERE course_id = %s", (course_id,))
+        course = cursor.fetchone()
+        cursor.close()
+        db.close()
+
+        course_name = course['course_name'] if course else "Unknown Course"
+
+        return render_template(
+            "progress.html",
+            progress=progress_summary,
+            detailed_progress=detailed_progress,
+            course_id=course_id,
+            course_name=course_name
+        )
+
 
 def init_lesson_routes(app):
     @app.route("/video/<int:lesson_id>")
@@ -57,6 +79,7 @@ def init_lesson_routes(app):
         finally:
             cursor.close()
             db.close()
+
 
 def init_app(app):
     init_student_routes(app)

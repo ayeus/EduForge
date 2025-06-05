@@ -53,6 +53,47 @@
             <h1>{{ course_name }}</h1>
         </header>
 
+        <!-- Main Content with YouTube-like Layout -->
+        <section class="video-section">
+            <!-- Main Video Player -->
+            <div class="main-video">
+                <h3 id="main-video-title">{{ lessons[0]['lesson_name'] if lessons else 'No Lessons Available' }}</h3>
+                <video id="main-video-player" controls>
+                    <source id="main-video-source" src="{{ lessons[0]['video_url'] if lessons and lessons[0]['video_url'] else '' }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="completion-checkbox">
+                    <input type="checkbox" id="main-video-checkbox" onchange="markCompleted({{ lessons[0]['lesson_id'] if lessons else 0 }})" {{ 'checked' if lessons and lessons[0].get('completed', 0) else '' }}>
+                    <label for="main-video-checkbox">Mark as Completed</label>
+                </div>
+            </div>
+
+            <!-- Video Playlist on the Right -->
+            <div class="video-playlist">
+                <h3>Lessons</h3>
+                <ul class="playlist-list">
+                    {% for lesson in lessons %}
+                    <li class="playlist-item" onclick="playVideo('{{ lesson['video_url'] if lesson['video_url'] else '' }}', '{{ lesson['lesson_name'] }}', {{ lesson['lesson_id'] }}, {{ lesson.get('completed', 0) | int }})">
+                        <div class="thumbnail">
+                            {% if lesson['video_url'] %}
+                                <video class="thumbnail-video" muted>
+                                    <source src="{{ lesson['video_url'] }}" type="video/mp4">
+                                </video>
+                            {% else %}
+                                <p>No video available</p>
+                            {% endif %}
+                        </div>
+                        <div class="playlist-info">
+                            <h4>{{ lesson['lesson_name'] }}</h4>
+                            <p>{{ lesson['content'] | safe }}</p>
+                            <input type="checkbox" class="playlist-checkbox" disabled {{ 'checked' if lesson.get('completed', 0) else '' }}>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
         <!-- Messaging Section -->
         <section class="messaging-section">
             <h2>Message Instructor</h2>
@@ -61,49 +102,7 @@
                 <button type="submit">Send Message</button>
             </form>
         </section>
-
-        <!-- Lessons Section -->
-        <section class="lesson-section">
-            <ul class="lesson-list">
-                {% if lessons %}
-                    {% for lesson in lessons %}
-                    <li class="lesson-item">
-                        <div class="lesson-content">
-                            <h3 class="lesson-title">{{ lesson['lesson_name'] }}</h3>
-                            <p class="lesson-description">{{ lesson['content'] | safe }}</p>
-                            <div class="lesson-media">
-                                {% if lesson['video_filename'] %}
-                                    <video controls class="lesson-video">
-                                        <source src="{{ url_for('get_video', lesson_id=lesson['lesson_id']) }}" type="{{ 'video/' + lesson['video_filename'].split('.')[-1] }}">
-                                        Your browser does not support the video tag.
-                                    </video>
-                                {% else %}
-                                    <p>No video available for this lesson.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li>No lessons available for this course.</li>
-                {% endif %}
-            </ul>
-        </section>
     </div>
-    <video id="lesson-video" src="{{ lesson.video_url }}" controls></video>
-<button onclick="markCompleted({{ lesson.lesson_id }})">Mark as Completed</button>
-
-<script>
-function markCompleted(lessonId) {
-    fetch(`/update_completion/${lessonId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'completed=true'
-    }).then(response => response.json()).then(data => {
-        alert(data.message);
-    });
-}
-</script>
 
     <script>
         // Dropdown menu functionality
@@ -116,52 +115,124 @@ function markCompleted(lessonId) {
             }
         });
 
-        // Message form submission
-       
-        document.getElementById('messageForm').onsubmit = function(e) {
-            e.preventDefault();
-            const content = document.getElementById('messageContent').value;
-            const student_id = {{ current_user.user_id if current_user else 'null' }};  // Handle case where current_user is not available
-            const instructor_id = {{ course.instructor_id }};  // Use the course object passed to the template
-            const course_id = {{ course.course_id }};  // Use the course object passed to the template
-    
-            if (!student_id) {
-                alert("You must be logged in to send a message.");
+        // Function to play a video in the main player
+        function playVideo(videoUrl, title, lessonId, isCompleted) {
+            console.log('playVideo called with:', { videoUrl, title, lessonId, isCompleted });
+            if (!videoUrl) {
+                alert('No video available for this lesson.');
                 return;
             }
-    
-            fetch('/send_message', {
+
+            const mainVideoPlayer = document.getElementById('main-video-player');
+            const mainVideoSource = document.getElementById('main-video-source');
+            const mainVideoTitle = document.getElementById('main-video-title');
+            const mainCheckbox = document.getElementById('main-video-checkbox');
+
+            mainVideoSource.src = videoUrl;
+            mainVideoPlayer.load();
+            mainVideoPlayer.play().catch(error => {
+                console.error('Error playing video:', error);
+                alert('Error playing video. Please check the video URL.');
+            });
+            mainVideoTitle.textContent = title;
+            mainCheckbox.checked = isCompleted;
+            mainCheckbox.onchange = () => markCompleted(lessonId);
+        }
+
+        // Function to mark a video as completed
+        function markCompleted(lessonId) {
+            const checkbox = document.getElementById('main-video-checkbox');
+            const completed = checkbox.checked;
+
+            fetch(`/progress/update_completion/${lessonId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    student_id: student_id,
-                    instructor_id: instructor_id,
-                    course_id: course_id,
-                    content: content
-                })
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `completed=${completed}`
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    return response.text().then(text => {
+                        throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    });
                 }
-                return response.json();  // Parse the JSON response
+                return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    alert("Error: " + data.error);  // Show error message if something went wrong
-                } else {
-                    alert(data.message);  // Show success message
-                    document.getElementById('messageContent').value = '';  // Clear the textarea
+                    throw new Error(data.error);
                 }
+                alert(data.message);
+                // Update the corresponding checkbox in the playlist
+                const playlistCheckboxes = document.querySelectorAll('.playlist-checkbox');
+                playlistCheckboxes.forEach(cb => {
+                    if (cb.closest('.playlist-item').onclick.toString().includes(lessonId)) {
+                        cb.checked = completed;
+                    }
+                });
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("An error occurred while sending the message.");
+                alert(`An error occurred while updating completion: ${error.message}`);
             });
-        };
+        }
+
+        // Message form submission
+        // Updated message form submission script
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get form elements
+            const messageInput = document.getElementById('messageContent');
+            const submitBtn = this.querySelector('button');
+            
+            // Create payload with all required fields
+            const payload = {
+                student_id: parseInt("{{ session.get('user_id') }}"),  // Ensure number
+                instructor_id: parseInt("{{ course.instructor_id }}"), // Ensure number
+                course_id: parseInt("{{ course.course_id }}"),        // Ensure number
+                content: messageInput.value.trim()                    // Get message text
+            };
         
+            // Client-side validation
+            if (!payload.content) {
+                alert("Please enter a message");
+                return;
+            }
+        
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        
+            try {
+                const response = await fetch('/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+        
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || "Failed to send message");
+                }
+                
+                // Success feedback
+                alert("✓ Message sent successfully");
+                messageInput.value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || "An error occurred");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+            }
+        });
+
+        
+
     </script>
 </body>
 </html>

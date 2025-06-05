@@ -22,11 +22,12 @@
 .navbar-brand {
     font-size: 24px;
     font-weight: bold;
-    color: white;
-    background: linear-gradient(to right, rgb(0, 0, 0) , rgb(35, 154, 178) );
-    
+    background: linear-gradient(to right, rgb(0, 0, 0), rgb(35, 154, 178));
+    -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback for non-webkit browsers */
 }
+
 /* Form Container */
 .form-container {
     width: 100%;

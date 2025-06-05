@@ -1,13 +1,145 @@
-<!-- templates/progress.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" href="/static/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracker | EduForge</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='p.css') }}">
 </head>
 <body>
-    <h1>Your Progress</h1>
-    <p>Total Videos: {{ progress.total_videos }}</p>
-    <p>Videos Completed: {{ progress.completed_videos }}</p>
-    <p>Progress: {{ progress.progress_percentage }}%</p>
+    <!-- Modern Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <a href="{{ url_for('student_dashboard') }}" class="logo-link">
+                    <img src="{{ url_for('static', filename='images/eduforge-logo.png') }}" alt="EduForge Logo" class="logo">
+                    <span class="brand-name">EduForge</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="profile-dropdown">
+                    <button class="profile-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="profile-name">{{ session.get('username', 'Profile') }}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        
+                        
+                        <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Progress Content -->
+    <main class="progress-main">
+        <div class="progress-header">
+            <h1 class="course-title">{{ course_name }}</h1>
+            <div class="course-meta">
+                <span class="meta-item"><i class="fas fa-book-open"></i> {{ progress.total_videos }} Lessons</span>
+                <span class="meta-item"><i class="fas fa-check-circle"></i> {{ progress.completed_videos }} Completed</span>
+            </div>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="progress-card">
+            <div class="progress-stats">
+                <div class="stat-item">
+                    <h3>Your Progress</h3>
+                    <div class="progress-percent">{{ progress.progress_percentage | round(2) }}%</div>
+                </div>
+                <div class="progress-visual">
+                    <div class="circular-progress">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-circle" stroke-width="10" fill="transparent"
+                                    r="50" cx="60" cy="60" 
+                                    stroke-dasharray="314" 
+                                    stroke-dashoffset="{{ 314 * (1 - progress.progress_percentage/100) }}">
+                            </circle>
+                        </svg>
+                        <div class="progress-text">{{ progress.progress_percentage | round(2) }}%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{ progress.progress_percentage }}%"></div>
+            </div>
+        </div>
+
+        <!-- Lessons List -->
+        <div class="lessons-container">
+            <h2 class="section-title"><i class="fas fa-tasks"></i> Lesson Completion</h2>
+            <div class="lessons-list">
+                {% for item in detailed_progress %}
+                <div class="lesson-item {% if item.completed %}completed{% else %}incomplete{% endif %}">
+                    <div class="lesson-status">
+                        {% if item.completed %}
+                            <i class="fas fa-check-circle"></i>
+                        {% else %}
+                            <i class="far fa-circle"></i>
+                        {% endif %}
+                    </div>
+                    <div class="lesson-info">
+                        <h3>{{ item.lesson_name }}</h3>
+                        <span class="lesson-status-text">
+                            {% if item.completed %}Completed on {{ item.completed_at|default('recently', true) }}
+                            {% else %}Not completed yet{% endif %}
+                        </span>
+                    </div>
+                    <div class="lesson-action">
+                        {% if not item.completed %}
+                        <button class="mark-complete-btn" data-lesson-id="{{ item.lesson_id }}">
+                            Mark Complete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Profile dropdown functionality
+        document.querySelector('.profile-btn').addEventListener('click', function() {
+            this.parentElement.querySelector('.dropdown-content').classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.profile-btn') && !e.target.closest('.profile-btn')) {
+                const dropdowns = document.querySelectorAll('.dropdown-content');
+                dropdowns.forEach(dropdown => {
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+            }
+        });
+
+        // Mark lesson as complete
+        document.querySelectorAll('.mark-complete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const lessonId = this.getAttribute('data-lesson-id');
+                fetch(`/progress/update_completion/${lessonId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ completed: true })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -132,5 +132,50 @@
             </div>
         </div>
     </footer>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket');
+        });
+        
+        socket.on('new_message', (data) => {
+            const messagesContainer = document.querySelector('.messages-container');
+            const messageHTML = `
+                <div class="message-card">
+                    <h3>Course: ${data.course_name}</h3>
+                    <p><strong>From:</strong> ${data.student_name}</p>
+                    <p><strong>Message:</strong> ${data.content}</p>
+                    <p><strong>Date:</strong> ${data.timestamp}</p>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('afterbegin', messageHTML);
+            
+            // Notification
+            alert(`New message from ${data.student_name}`);
+        });
+    </script>
+
+<style>
+    .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4361ee;
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(100px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
 </body>
 </html>
