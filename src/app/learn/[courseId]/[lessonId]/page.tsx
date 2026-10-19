@@ -9,11 +9,17 @@ import { Markdown } from "@/components/markdown";
 import { CompleteToggle } from "@/components/learn/complete-toggle";
 import { LessonTabs } from "@/components/learn/lesson-tabs";
 import { LessonPlayer } from "@/components/learn/lesson-player";
+import { QuizPanel } from "@/components/learn/quiz-panel";
+import { LiveNowBanner } from "@/components/live/live-now-banner";
+import { LocalTime } from "@/components/local-time";
+import { NotificationBell } from "@/components/notifications/bell";
 import { Syllabus, SyllabusSheet } from "@/components/learn/syllabus";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/dal";
 import { getLearningView } from "@/lib/data/courses";
-import { getThreadMessages } from "@/lib/data/messages";
+import { getAnnouncements, getQuizForStudent } from "@/lib/data/engagement";
+import { getThreadMessages, getUserCard, serializeMessage } from "@/lib/data/messages";
+import { getLiveNow } from "@/lib/live/sessions";
 import { pct } from "@/lib/format";
 import { fileUrl } from "@/lib/storage";
 
@@ -42,10 +48,14 @@ export default async function LessonPage({ params }: PageProps<"/learn/[courseId
   const prev = view.lessons[index - 1];
   const next = view.lessons[index + 1];
 
-  const [videoUrl, attachmentUrl, thread] = await Promise.all([
+  const [videoUrl, attachmentUrl, thread, instructor, quiz, announcements, liveNow] = await Promise.all([
     fileUrl(lesson.videoKey),
     fileUrl(lesson.attachmentKey, { downloadName: lesson.attachmentName ?? undefined }),
     preview ? Promise.resolve([]) : getThreadMessages(courseId, user.id),
+    getUserCard(view.course.instructorId),
+    getQuizForStudent(lesson.id, user.id),
+    getAnnouncements(courseId, 10),
+    getLiveNow(courseId),
   ]);
 
   const syllabus = view.lessons.map((l) => ({ id: l.id, title: l.title, completed: l.completed, durationSeconds: l.durationSeconds }));
@@ -65,9 +75,11 @@ export default async function LessonPage({ params }: PageProps<"/learn/[courseId
           <ForgeRing value={pct(done, view.lessons.length)} size={36} stroke={4}>
             <span className="sr-only">{pct(done, view.lessons.length)}%</span>
           </ForgeRing>
+          <NotificationBell />
           <SyllabusSheet courseId={courseId} activeId={lesson.id} lessons={syllabus} />
         </div>
       </header>
+      <LiveNowBanner courseId={courseId} initial={liveNow} />
 
       <main id="main" className="mx-auto grid w-full max-w-[1600px] flex-1 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 px-4 py-6 sm:px-8">
@@ -100,10 +112,45 @@ export default async function LessonPage({ params }: PageProps<"/learn/[courseId
             <LessonTabs
               courseId={courseId}
               lessonId={lesson.id}
-              studentId={user.id}
-              instructorName={view.course.instructorName}
-              initialThread={thread.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
-              chatEnabled={!preview}
+              chat={
+                !preview && instructor
+                  ? {
+                      studentId: user.id,
+                      peer: { id: instructor.id, name: instructor.name, lastSeenAt: instructor.lastSeenAt, subtitle: "Instructor" },
+                      initial: thread.map(serializeMessage),
+                    }
+                  : undefined
+              }
+              quiz={
+                quiz.questions.length
+                  ? {
+                      count: quiz.questions.length,
+                      node: <QuizPanel lessonId={lesson.id} questions={quiz.questions} best={quiz.best} canSubmit={!preview} />,
+                    }
+                  : undefined
+              }
+              updates={{
+                count: announcements.length,
+                node: announcements.length ? (
+                  <ol className="space-y-4">
+                    {announcements.map((a) => (
+                      <li key={a.id} className="rounded-xl border border-border bg-card p-5">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <h3 className="font-medium">{a.title}</h3>
+                          <LocalTime iso={a.createdAt} format="short" className="text-xs text-muted-foreground" />
+                        </div>
+                        {a.body && (
+                          <div className="mt-3 text-sm">
+                            <Markdown>{a.body}</Markdown>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-muted-foreground">No announcements yet. Course updates from {view.course.instructorName} appear here.</p>
+                ),
+              }}
               notes={
                 <div className="space-y-6">
                   {attachmentUrl && (

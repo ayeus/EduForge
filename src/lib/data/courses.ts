@@ -4,12 +4,14 @@ import { db, schema } from "@/lib/db";
 import type { CurrentUser } from "@/lib/auth/dal";
 import { fileUrl } from "@/lib/storage";
 
-const { courses, lessons, users, enrollments, lessonProgress, messages } = schema;
+const { courses, lessons, users, enrollments, lessonProgress, messages, reviews } = schema;
 
 // Explicitly qualified: Drizzle omits table names in single-table selects, which would break correlation.
 const COURSE_ID = sql.raw(`"courses"."id"`);
 const lessonCount = sql<number>`(select count(*)::int from ${lessons} where "lessons"."course_id" = ${COURSE_ID})`;
 const studentCount = sql<number>`(select count(*)::int from ${enrollments} where "enrollments"."course_id" = ${COURSE_ID})`;
+const ratingAvg = sql<number>`(select coalesce(round(avg(r.rating)::numeric, 1), 0)::float from ${reviews} r where r.course_id = ${COURSE_ID})`;
+const ratingCount = sql<number>`(select count(*)::int from ${reviews} r where r.course_id = ${COURSE_ID})`;
 
 export async function withCover<T extends { coverKey: string | null }>(rows: T[]) {
   return Promise.all(rows.map(async (r) => ({ ...r, coverUrl: await fileUrl(r.coverKey) })));
@@ -33,6 +35,8 @@ export async function listCatalog(opts: { q?: string; category?: string } = {}) 
       instructorName: users.name,
       lessonCount,
       studentCount,
+      ratingAvg,
+      ratingCount,
     })
     .from(courses)
     .innerJoin(users, eq(users.id, courses.instructorId))
@@ -203,6 +207,8 @@ export async function getRecommended(userId: string, limit = 3) {
       instructorName: users.name,
       lessonCount,
       studentCount,
+      ratingAvg,
+      ratingCount,
     })
     .from(courses)
     .innerJoin(users, eq(users.id, courses.instructorId))

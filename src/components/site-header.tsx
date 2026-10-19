@@ -1,6 +1,18 @@
 import Link from "next/link";
-import { BookOpen, GraduationCap, Inbox, LayoutDashboard, LogOut, PenTool } from "lucide-react";
+import {
+  BookOpen,
+  GraduationCap,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  MessagesSquare,
+  PenTool,
+  Radio,
+  Settings,
+} from "lucide-react";
 import { Logo } from "@/components/logo";
+import { NotificationBell } from "@/components/notifications/bell";
+import { CountBadge } from "@/components/realtime/counters";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,52 +39,74 @@ export async function SiteHeader() {
           <NavLink href="/courses">Catalog</NavLink>
           {user && !teaching && <NavLink href="/dashboard">My learning</NavLink>}
           {teaching && <NavLink href="/studio">Studio</NavLink>}
-          {teaching && <NavLink href="/studio/inbox">Inbox</NavLink>}
+          {user && <NavLink href="/live">Live</NavLink>}
+          {user && (
+            <NavLink href={teaching ? "/studio/inbox" : "/messages"}>
+              <span className="inline-flex items-center gap-1.5">
+                {teaching ? "Inbox" : "Messages"}
+                <CountBadge kind="messages" />
+              </span>
+            </NavLink>
+          )}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Account menu">
-                  <Avatar className="size-9 border border-border">
-                    <AvatarFallback className="bg-secondary font-display text-[11px]">{initials(user.name)}</AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="truncate text-sm font-medium text-foreground">{user.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {teaching ? (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/studio"><LayoutDashboard /> Studio</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/studio/courses/new"><PenTool /> New course</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/studio/inbox"><Inbox /> Inbox</Link>
-                    </DropdownMenuItem>
-                  </>
-                ) : (
+            <>
+              <NotificationBell />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="ml-1 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Account menu">
+                    <Avatar className="size-9 border border-border">
+                      <AvatarFallback className="bg-secondary font-display text-[11px]">{initials(user.name)}</AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="truncate text-sm font-medium text-foreground">{user.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {teaching ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/studio"><LayoutDashboard /> Studio</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/studio/courses/new"><PenTool /> New course</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/studio/inbox"><Inbox /> Inbox <CountBadge kind="messages" className="ml-auto" /></Link>
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard"><GraduationCap /> My learning</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/messages"><MessagesSquare /> Messages <CountBadge kind="messages" className="ml-auto" /></Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard"><GraduationCap /> My learning</Link>
+                    <Link href="/live"><Radio /> Live classes</Link>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild className="md:hidden">
-                  <Link href="/courses"><BookOpen /> Catalog</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <form action={logoutAction}>
+                  <DropdownMenuItem asChild className="md:hidden">
+                    <Link href="/courses"><BookOpen /> Catalog</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <button type="submit" className="w-full"><LogOut /> Sign out</button>
+                    <Link href="/settings"><Settings /> Account settings</Link>
                   </DropdownMenuItem>
-                </form>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <form action={logoutAction}>
+                    <DropdownMenuItem asChild>
+                      <button type="submit" className="w-full"><LogOut /> Sign out</button>
+                    </DropdownMenuItem>
+                  </form>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm">

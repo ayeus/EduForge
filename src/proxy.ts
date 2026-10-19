@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, decodeSession } from "@/lib/auth/session";
 
 // Optimistic gate only: pages and actions re-verify the session against the database.
-const PROTECTED = ["/dashboard", "/learn", "/studio"];
+const PROTECTED = ["/dashboard", "/learn", "/studio", "/live", "/messages", "/settings"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function proxy(request: NextRequest) {
@@ -24,5 +24,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/learn/:path*", "/studio/:path*", "/login", "/register"],
+  matcher: [
+    "/dashboard/:path*",
+    "/learn/:path*",
+    "/studio/:path*",
+    "/live/:path*",
+    "/messages/:path*",
+    "/settings/:path*",
+    "/login",
+    "/register",
+  ],
 };

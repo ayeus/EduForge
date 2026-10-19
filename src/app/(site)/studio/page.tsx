@@ -2,18 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Inbox, Plus } from "lucide-react";
 import { CourseCover } from "@/components/course-cover";
+import { ScheduleLiveDialog } from "@/components/live/schedule-form";
+import { OnAirCard, SessionRows } from "@/components/live/session-list";
+import { RefreshOn } from "@/components/realtime/refresh-on";
 import { ForgeRing } from "@/components/forge-ring";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/dal";
 import { getStudio } from "@/lib/data/courses";
+import { listLiveForInstructor } from "@/lib/live/sessions";
 import { timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Studio" };
 
 export default async function StudioPage() {
   const user = await requireRole("instructor");
-  const { courses, unread } = await getStudio(user);
+  const [{ courses, unread }, live] = await Promise.all([getStudio(user), listLiveForInstructor(user)]);
+  const onAir = live.filter((l) => l.status === "live");
+  const upcoming = live.filter((l) => l.status === "scheduled").slice(0, 3);
   const students = courses.reduce((s, c) => s + c.studentCount, 0);
   const published = courses.filter((c) => c.status === "published").length;
   const withStudents = courses.filter((c) => c.studentCount > 0);
@@ -47,6 +53,31 @@ export default async function StudioPage() {
         </Link>
       </dl>
 
+      <RefreshOn types={["live.status", "message", "thread.read"]} />
+
+      {onAir.length > 0 && (
+        <section className="mt-8 space-y-4" aria-label="On air now">
+          {onAir.map((s) => (
+            <OnAirCard key={s.id} session={s} host />
+          ))}
+        </section>
+      )}
+
+      {courses.length > 0 && (
+        <section className="mt-12" aria-labelledby="studio-live">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="studio-live" className="font-display text-lg font-medium">Upcoming live classes</h2>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/live">All classes</Link>
+              </Button>
+              <ScheduleLiveDialog courses={courses.map((c) => ({ id: c.id, title: c.title }))} trigger={<Button variant="outline">Schedule class</Button>} />
+            </div>
+          </div>
+          <SessionRows sessions={upcoming} host empty="Nothing scheduled. Live classes let you teach and answer questions in real time." />
+        </section>
+      )}
+
       <section className="mt-12">
         <h2 className="mb-4 font-display text-lg font-medium">Your courses</h2>
         {courses.length ? (
@@ -61,7 +92,7 @@ export default async function StudioPage() {
                       {c.status === "draft" ? (
                         <Badge variant="outline">Draft</Badge>
                       ) : (
-                        <Badge className="border-ember/40 bg-ember/10 text-ember-hot" variant="outline">Live</Badge>
+                        <Badge className="border-ember/40 bg-ember/10 text-ember-hot" variant="outline">Published</Badge>
                       )}
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">

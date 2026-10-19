@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileText, PlayCircle } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, ListChecks, PlayCircle, Star } from "lucide-react";
 import { z } from "zod";
 import { HeatBar } from "@/components/forge-ring";
 import { CourseForm } from "@/components/studio/course-form";
 import { DeleteCourse, LessonRowActions, PublishToggle } from "@/components/studio/course-controls";
 import { LessonEditor } from "@/components/studio/lesson-editor";
+import { AnnouncementComposer, AnnouncementList } from "@/components/studio/announcements";
+import { QuizEditor } from "@/components/studio/quiz-editor";
+import { ScheduleLiveDialog } from "@/components/live/schedule-form";
+import { SessionRows } from "@/components/live/session-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,18 +18,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateCourseAction } from "@/lib/actions/courses";
 import { requireRole } from "@/lib/auth/dal";
 import { getCourseForEdit, getRoster } from "@/lib/data/courses";
+import { getAnnouncements, getQuizzesForCourse, getReviewSummary } from "@/lib/data/engagement";
+import { listLiveForCourse } from "@/lib/live/sessions";
 import { duration, pct, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Edit course" };
 
-export default async function EditCoursePage({ params }: PageProps<"/studio/courses/[id]">) {
+const TABS = ["lessons", "live", "announcements", "students", "details"] as const;
+
+export default async function EditCoursePage({ params, searchParams }: PageProps<"/studio/courses/[id]">) {
   const { id } = await params;
+  const { tab } = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
   const user = await requireRole("instructor");
   const course = await getCourseForEdit(id, user);
   if (!course) notFound();
-  const roster = await getRoster(id);
+  const [roster, quizzes, live, announcements, rating] = await Promise.all([
+    getRoster(id),
+    getQuizzesForCourse(id),
+    listLiveForCourse(id),
+    getAnnouncements(id, 50),
+    getReviewSummary(id),
+  ]);
   const total = course.lessons.length;
+  const defaultTab = TABS.includes(tab as (typeof TABS)[number]) ? (tab as string) : "lessons";
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -39,11 +55,16 @@ export default async function EditCoursePage({ params }: PageProps<"/studio/cour
             {course.status === "draft" ? (
               <Badge variant="outline">Draft</Badge>
             ) : (
-              <Badge variant="outline" className="border-ember/40 bg-ember/10 text-ember-hot">Live</Badge>
+              <Badge variant="outline" className="border-ember/40 bg-ember/10 text-ember-hot">Published</Badge>
             )}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
             {total} lessons · {roster.length} students · {course.category}
+            {rating.total > 0 && (
+              <Link href={`/courses/${course.id}#reviews`} className="inline-flex items-center gap-1 hover:text-foreground">
+                · <Star className="size-3.5 fill-ember-hot text-ember-hot" /> {rating.average.toFixed(1)} ({rating.total})
+              </Link>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -59,12 +80,16 @@ export default async function EditCoursePage({ params }: PageProps<"/studio/cour
         </div>
       </div>
 
-      <Tabs defaultValue="lessons" className="mt-8">
-        <TabsList className="h-10">
-          <TabsTrigger value="lessons" className="px-4">Lessons</TabsTrigger>
-          <TabsTrigger value="details" className="px-4">Details</TabsTrigger>
-          <TabsTrigger value="students" className="px-4">Students ({roster.length})</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue={defaultTab} className="mt-8">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <TabsList className="h-10">
+            <TabsTrigger value="lessons" className="px-4">Lessons</TabsTrigger>
+            <TabsTrigger value="live" className="px-4">Live classes</TabsTrigger>
+            <TabsTrigger value="announcements" className="px-4">Announcements</TabsTrigger>
+            <TabsTrigger value="students" className="px-4">Students ({roster.length})</TabsTrigger>
+            <TabsTrigger value="details" className="px-4">Details</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="lessons" className="pt-6">
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -76,9 +101,9 @@ export default async function EditCoursePage({ params }: PageProps<"/studio/cour
           {total > 0 && (
             <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {course.lessons.map((l, i) => (
-                <li key={l.id} className="flex items-center gap-3 px-4 py-3">
+                <li key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                   <span className="w-6 font-mono text-xs text-muted-foreground tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 basis-[220px]">
                     <div className="truncate font-medium">{l.title}</div>
                     <div className="mt-0.5 flex flex-wrap gap-3 text-xs text-muted-foreground">
                       {l.videoKey ? (
@@ -87,9 +112,13 @@ export default async function EditCoursePage({ params }: PageProps<"/studio/cour
                         <span>Reading</span>
                       )}
                       {l.attachmentName && <span className="inline-flex items-center gap-1"><FileText className="size-3" /> {l.attachmentName}</span>}
+                      {quizzes[l.id]?.length ? (
+                        <span className="inline-flex items-center gap-1"><ListChecks className="size-3" /> {quizzes[l.id].length}-question quiz</span>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="flex items-center">
+                  <div className="ml-auto flex items-center">
+                    <QuizEditor courseId={course.id} lessonId={l.id} lessonTitle={l.title} initial={quizzes[l.id] ?? []} />
                     <LessonEditor courseId={course.id} lesson={l} index={i} />
                     <LessonRowActions courseId={course.id} lessonId={l.id} title={l.title} first={i === 0} last={i === total - 1} />
                   </div>
@@ -97,6 +126,28 @@ export default async function EditCoursePage({ params }: PageProps<"/studio/cour
               ))}
             </ol>
           )}
+        </TabsContent>
+
+        <TabsContent value="live" className="pt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {course.status === "published"
+                ? "Enrolled students are notified when you schedule a class and again when you go live."
+                : "You can schedule classes now. Students can join once the course is published."}
+            </p>
+            <ScheduleLiveDialog courseId={course.id} />
+          </div>
+          <SessionRows sessions={live} host empty="No live classes yet. Schedule one to teach in real time." />
+        </TabsContent>
+
+        <TabsContent value="announcements" className="pt-6">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <AnnouncementComposer courseId={course.id} published={course.status === "published"} />
+            <div>
+              <h2 className="mb-3 text-sm font-medium text-muted-foreground">Sent</h2>
+              <AnnouncementList courseId={course.id} items={announcements} />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="details" className="max-w-2xl pt-6">

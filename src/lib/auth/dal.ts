@@ -18,11 +18,15 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       name: schema.users.name,
       email: schema.users.email,
       role: schema.users.role,
+      passwordChangedAt: schema.users.passwordChangedAt,
     })
     .from(schema.users)
     .where(eq(schema.users.id, session.sub))
     .limit(1);
-  return user ?? null;
+  if (!user) return null;
+  // A password change invalidates sessions issued before it (1s slack for the re-issued cookie).
+  if (user.passwordChangedAt && (session.iat ?? 0) * 1000 < user.passwordChangedAt.getTime() - 1000) return null;
+  return { id: user.id, name: user.name, email: user.email, role: user.role };
 });
 
 export async function requireUser(): Promise<CurrentUser> {
