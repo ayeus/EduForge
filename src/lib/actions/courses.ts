@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole, type CurrentUser } from "@/lib/auth/dal";
 import { db, schema } from "@/lib/db";
+import { mux, muxConfigured } from "@/lib/live/mux";
+import { notifyCourse } from "@/lib/notifications";
 import { deleteFile, keyBelongsTo } from "@/lib/storage";
 import { echo, type FormState } from "./types";
 
@@ -87,12 +89,22 @@ export async function deleteCourseAction(courseId: string) {
   const user = await requireRole("instructor");
   const course = await ownCourse(user, courseId);
   if (!course) return { error: "Course not found." };
-  const files = await db
-    .select({ v: lessons.videoKey, a: lessons.attachmentKey })
-    .from(lessons)
-    .where(eq(lessons.courseId, courseId));
+  const [files, streams] = await Promise.all([
+    db.select({ v: lessons.videoKey, a: lessons.attachmentKey }).from(lessons).where(eq(lessons.courseId, courseId)),
+    db
+      .select({ id: schema.liveSessions.muxStreamId })
+      .from(schema.liveSessions)
+      .where(eq(schema.liveSessions.courseId, courseId)),
+  ]);
   await db.delete(courses).where(eq(courses.id, courseId));
   await Promise.all([course.coverKey, ...files.flatMap((f) => [f.v, f.a])].map((k) => deleteFile(k)));
+  if (muxConfigured()) {
+    await Promise.all(
+      streams
+        .filter((s) => s.id)
+        .map((s) => mux().video.liveStreams.delete(s.id!).catch((err) => console.error("[live] could not delete stream", err))),
+    );
+  }
   revalidatePath("/studio");
   revalidatePath("/courses");
   redirect("/studio");
@@ -140,16 +152,27 @@ export async function saveLessonAction(
       .select({ next: sql<number>`coalesce(max(${lessons.position}), -1) + 1` })
       .from(lessons)
       .where(eq(lessons.courseId, courseId));
-    await db.insert(lessons).values({
-      courseId,
-      title: d.title,
-      content: d.content,
-      videoKey: d.videoKey ?? null,
-      attachmentKey: d.attachmentKey ?? null,
-      attachmentName: d.attachmentKey ? (d.attachmentName ?? "Attachment") : null,
-      durationSeconds: d.durationSeconds ?? null,
-      position: next,
-    });
+    const [created] = await db
+      .insert(lessons)
+      .values({
+        courseId,
+        title: d.title,
+        content: d.content,
+        videoKey: d.videoKey ?? null,
+        attachmentKey: d.attachmentKey ?? null,
+        attachmentName: d.attachmentKey ? (d.attachmentName ?? "Attachment") : null,
+        durationSeconds: d.durationSeconds ?? null,
+        position: next,
+      })
+      .returning({ id: lessons.id });
+    if (course.status === "published") {
+      await notifyCourse(courseId, {
+        kind: "lesson",
+        title: `New lesson in ${course.title}`,
+        body: d.title,
+        href: `/learn/${courseId}/${created.id}`,
+      });
+    }
     touch(courseId);
     return { ok: true, message: "Lesson added." };
   }

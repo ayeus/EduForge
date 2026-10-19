@@ -1,19 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessagesSquare } from "lucide-react";
+import { Award, MessagesSquare } from "lucide-react";
 import { CourseCard } from "@/components/course-card";
+import { OnAirCard, SessionRows } from "@/components/live/session-list";
+import { RefreshOn } from "@/components/realtime/refresh-on";
 import { CourseCover } from "@/components/course-cover";
 import { ForgeRing, HeatBar } from "@/components/forge-ring";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/dal";
 import { getRecommended, getStudentDashboard } from "@/lib/data/courses";
+import { getCertificatesForUser } from "@/lib/data/engagement";
+import { listLiveForStudent } from "@/lib/live/sessions";
 import { pct, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "My learning" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [{ courses, unread }, recommended] = await Promise.all([getStudentDashboard(user.id), getRecommended(user.id)]);
+  const [{ courses, unread }, recommended, live, certificates] = await Promise.all([
+    getStudentDashboard(user.id),
+    getRecommended(user.id),
+    listLiveForStudent(user.id),
+    getCertificatesForUser(user.id),
+  ]);
+  const onAir = live.filter((l) => l.status === "live");
+  const upcoming = live.filter((l) => l.status === "scheduled").slice(0, 3);
   const totals = courses.reduce((a, c) => ({ done: a.done + c.done, total: a.total + c.total }), { done: 0, total: 0 });
   const current = courses.find((c) => c.done < c.total) ?? courses[0];
   const firstName = user.name.split(" ")[0];
@@ -30,12 +41,24 @@ export default async function DashboardPage() {
           </p>
         </div>
         {unread > 0 && (
-          <p className="inline-flex items-center gap-2 rounded-full border border-ember/40 bg-ember/10 px-3 py-1.5 text-sm">
+          <Link
+            href="/messages"
+            className="inline-flex items-center gap-2 rounded-full border border-ember/40 bg-ember/10 px-3 py-1.5 text-sm transition-colors hover:bg-ember/15"
+          >
             <MessagesSquare className="size-4 text-ember-hot" />
             {unread} new {unread === 1 ? "reply" : "replies"} from instructors
-          </p>
+          </Link>
         )}
       </div>
+      <RefreshOn types={["live.status"]} />
+
+      {onAir.length > 0 && (
+        <section className="mt-8 space-y-4" aria-label="Live now">
+          {onAir.map((s) => (
+            <OnAirCard key={s.id} session={s} host={false} />
+          ))}
+        </section>
+      )}
 
       {current ? (
         <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-card" aria-labelledby="resume">
@@ -49,14 +72,29 @@ export default async function DashboardPage() {
                 </div>
               </ForgeRing>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-muted-foreground">Continue where you left off</p>
+                <p className="text-sm text-muted-foreground">
+                  {current.total > 0 && current.done === current.total ? "Course complete" : "Continue where you left off"}
+                </p>
                 <h2 id="resume" className="mt-1 font-display text-xl font-medium text-balance">{current.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {current.instructorName} · active {timeAgo(current.lastActiveAt)}
                 </p>
-                <Button asChild className="mt-5 h-11 bg-heat px-6 font-semibold">
-                  <Link href={`/learn/${current.id}`}>{current.done === 0 ? "Start the first lesson" : "Resume lesson"}</Link>
-                </Button>
+                {current.total > 0 && current.done === current.total ? (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {certificates[current.id] && (
+                      <Button asChild className="h-11 bg-heat px-6 font-semibold">
+                        <Link href={`/certificates/${certificates[current.id]}`}><Award /> View certificate</Link>
+                      </Button>
+                    )}
+                    <Button asChild variant="outline" className="h-11 px-5">
+                      <Link href={`/learn/${current.id}`}>Review lessons</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild className="mt-5 h-11 bg-heat px-6 font-semibold">
+                    <Link href={`/learn/${current.id}`}>{current.done === 0 ? "Start the first lesson" : "Resume lesson"}</Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -70,6 +108,16 @@ export default async function DashboardPage() {
           <Button asChild className="mt-6 bg-heat font-semibold">
             <Link href="/courses">Browse the catalog</Link>
           </Button>
+        </section>
+      )}
+
+      {upcoming.length > 0 && (
+        <section className="mt-12" aria-labelledby="upcoming-live">
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <h2 id="upcoming-live" className="font-display text-lg font-medium">Upcoming live classes</h2>
+            <Link href="/live" className="text-sm text-muted-foreground hover:text-foreground">All live classes</Link>
+          </div>
+          <SessionRows sessions={upcoming} host={false} empty={null} />
         </section>
       )}
 
@@ -89,11 +137,43 @@ export default async function DashboardPage() {
                         <span className="font-mono text-xs text-muted-foreground tabular-nums">{p}%</span>
                       </div>
                     </div>
-                    <span className="hidden text-sm text-muted-foreground sm:block">{p === 100 ? "Completed" : `${c.total - c.done} left`}</span>
+                    {certificates[c.id] ? (
+                      <span className="inline-flex items-center gap-1.5 text-sm text-ember-hot">
+                        <Award className="size-4" /> Certified
+                      </span>
+                    ) : (
+                      <span className="hidden text-sm text-muted-foreground sm:block">{p === 100 ? "Completed" : `${c.total - c.done} left`}</span>
+                    )}
                   </Link>
                 </li>
               );
             })}
+          </ul>
+        </section>
+      )}
+
+      {Object.keys(certificates).length > 0 && (
+        <section className="mt-12" aria-labelledby="certs">
+          <h2 id="certs" className="mb-4 font-display text-lg font-medium">Certificates</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {courses
+              .filter((c) => certificates[c.id])
+              .map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/certificates/${certificates[c.id]}`}
+                    className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-ember/50"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-heat text-primary-foreground">
+                      <Award className="size-5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{c.title}</span>
+                      <span className="text-xs text-muted-foreground">View and share</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
           </ul>
         </section>
       )}

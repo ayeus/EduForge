@@ -17,6 +17,8 @@
     "@ai-sdk/react": "^4.0.143",
     "@aws-sdk/client-s3": "^3.1151.0",
     "@aws-sdk/s3-request-presigner": "^3.1151.0",
+    "@mux/mux-player-react": "3.14.0",
+    "@mux/ts": "15.6.1",
     "ai": "^7.0.140",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

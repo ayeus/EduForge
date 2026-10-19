@@ -166,3 +166,30 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Live classes: the on-air dot and reactions drifting up over the stream */
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 122 47 / 0.55); }
+  60% { box-shadow: 0 0 0 7px rgb(255 122 47 / 0); }
+}
+@utility animate-live-pulse {
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes reaction-rise {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.6); }
+  12% { opacity: 1; transform: translate3d(0, -12%, 0) scale(1.15); }
+  100% { opacity: 0; transform: translate3d(var(--drift, 0px), -420%, 0) scale(0.9); }
+}
+@utility animate-reaction-rise {
+  animation: reaction-rise 2.5s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+
+/* Certificates print on white, without the app chrome */
+@media print {
+  body > a, header, footer, [data-sonner-toaster] { display: none !important; }
+  body { background: #fff !important; color: #111 !important; }
+  .certificate { background: #fff !important; color: #111 !important; }
+  .certificate .text-muted-foreground { color: #555 !important; }
+  .certificate .border-border { border-color: #ddd !important; }
+  @page { size: landscape; margin: 12mm; }
+}

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, FileText, Layers, PlayCircle, Users } from "lucide-react";
+import { Award, Clock, FileText, Layers, PlayCircle, Star, Users } from "lucide-react";
 import { CourseCover } from "@/components/course-cover";
+import { ReviewForm } from "@/components/course/review-form";
+import { Stars } from "@/components/course/stars";
+import { SessionRows } from "@/components/live/session-list";
+import { LocalTime } from "@/components/local-time";
 import { Markdown } from "@/components/markdown";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { enrollAction } from "@/lib/actions/learning";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getCourseOverview } from "@/lib/data/courses";
+import { getAnnouncements, getCertificatesForUser, getMyReview, getReviewSummary, getReviews } from "@/lib/data/engagement";
+import { listLiveForCourse } from "@/lib/live/sessions";
 import { LEVEL_LABEL, duration } from "@/lib/format";
 import { z } from "zod";
 
@@ -31,6 +37,17 @@ export default async function CourseOverviewPage({ params }: PageProps<"/courses
   const { id } = await params;
   const { user, course } = await load(id);
   const totalSeconds = course.syllabus.reduce((s, l) => s + (l.durationSeconds ?? 0), 0);
+  const member = !!course.enrollment || course.isOwner;
+  const [summary, reviews, myReview, announcements, live, certificates] = await Promise.all([
+    getReviewSummary(id),
+    getReviews(id),
+    user && course.enrollment ? getMyReview(id, user.id) : null,
+    member ? getAnnouncements(id, 5) : [],
+    member ? listLiveForCourse(id) : [],
+    user && course.enrollment ? getCertificatesForUser(user.id) : {},
+  ]);
+  const certificateId = (certificates as Record<string, string>)[id];
+  const upcomingLive = live.filter((l) => l.status !== "ended" || l.hasReplay).slice(0, 5);
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_380px]">
@@ -50,12 +67,46 @@ export default async function CourseOverviewPage({ params }: PageProps<"/courses
           <span className="inline-flex items-center gap-1.5"><Layers className="size-4" />{course.syllabus.length} lessons</span>
           {totalSeconds > 0 && <span className="inline-flex items-center gap-1.5"><Clock className="size-4" />{duration(totalSeconds)}</span>}
           <span className="inline-flex items-center gap-1.5"><Users className="size-4" />{course.studentCount} enrolled</span>
+          {summary.total > 0 && (
+            <a href="#reviews" className="inline-flex items-center gap-1.5 hover:text-foreground">
+              <Star className="size-4 fill-ember-hot text-ember-hot" />
+              <span className="text-foreground tabular-nums">{summary.average.toFixed(1)}</span> ({summary.total} {summary.total === 1 ? "review" : "reviews"})
+            </a>
+          )}
         </div>
 
         {course.description && (
           <section className="mt-10">
             <h2 className="mb-4 font-display text-lg font-medium">About this course</h2>
             <Markdown>{course.description}</Markdown>
+          </section>
+        )}
+
+        {upcomingLive.length > 0 && (
+          <section className="mt-10" aria-labelledby="live-classes">
+            <h2 id="live-classes" className="mb-4 font-display text-lg font-medium">Live classes</h2>
+            <SessionRows sessions={upcomingLive} host={course.isOwner} empty={null} />
+          </section>
+        )}
+
+        {announcements.length > 0 && (
+          <section id="announcements" className="mt-10 scroll-mt-24" aria-labelledby="announcements-title">
+            <h2 id="announcements-title" className="mb-4 font-display text-lg font-medium">Announcements</h2>
+            <ol className="space-y-3">
+              {announcements.map((a) => (
+                <li key={a.id} className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="font-medium">{a.title}</h3>
+                    <LocalTime iso={a.createdAt} format="short" className="text-xs text-muted-foreground" />
+                  </div>
+                  {a.body && (
+                    <div className="mt-3 text-sm">
+                      <Markdown>{a.body}</Markdown>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
           </section>
         )}
 
@@ -79,6 +130,51 @@ export default async function CourseOverviewPage({ params }: PageProps<"/courses
             <p className="text-muted-foreground">Lessons are on their way.</p>
           )}
         </section>
+
+        <section id="reviews" className="mt-12 scroll-mt-24" aria-labelledby="reviews-title">
+          <h2 id="reviews-title" className="mb-4 font-display text-lg font-medium">Reviews</h2>
+          {summary.total > 0 ? (
+            <div className="mb-6 grid gap-6 rounded-xl border border-border bg-card p-5 sm:grid-cols-[auto_1fr] sm:items-center">
+              <div className="text-center sm:pr-6">
+                <div className="font-mono text-5xl font-medium tabular-nums">{summary.average.toFixed(1)}</div>
+                <Stars value={summary.average} className="mt-2" />
+                <div className="mt-1 text-xs text-muted-foreground">{summary.total} {summary.total === 1 ? "review" : "reviews"}</div>
+              </div>
+              <ul className="space-y-1.5" aria-label="Rating breakdown">
+                {summary.distribution.map((d) => (
+                  <li key={d.stars} className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="w-10 tabular-nums">{d.stars} star</span>
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                      <span className="block h-full rounded-full bg-heat" style={{ width: `${summary.total ? (d.n / summary.total) * 100 : 0}%` }} />
+                    </span>
+                    <span className="w-6 text-right tabular-nums">{d.n}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mb-6 text-muted-foreground">No reviews yet.{course.enrollment ? " Be the first to share how it's going." : ""}</p>
+          )}
+          {course.enrollment && !course.isOwner && (
+            <div className="mb-6">
+              <ReviewForm courseId={course.id} existing={myReview} />
+            </div>
+          )}
+          {reviews.length > 0 && (
+            <ul className="divide-y divide-border">
+              {reviews.map((r) => (
+                <li key={r.userId} className="py-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-medium">{r.name}</span>
+                    <Stars value={r.rating} size={14} />
+                    <LocalTime iso={r.updatedAt} format="date" className="text-xs text-muted-foreground" />
+                  </div>
+                  {r.body && <p className="mt-2 max-w-[70ch] text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">{r.body}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
@@ -90,9 +186,16 @@ export default async function CourseOverviewPage({ params }: PageProps<"/courses
                 <Link href={`/studio/courses/${course.id}`}>Edit in studio</Link>
               </Button>
             ) : course.enrollment ? (
-              <Button asChild className="h-11 w-full bg-heat font-semibold">
-                <Link href={`/learn/${course.id}`}>Continue learning</Link>
-              </Button>
+              <>
+                <Button asChild className="h-11 w-full bg-heat font-semibold">
+                  <Link href={`/learn/${course.id}`}>{certificateId ? "Review the course" : "Continue learning"}</Link>
+                </Button>
+                {certificateId && (
+                  <Button asChild variant="outline" className="h-11 w-full">
+                    <Link href={`/certificates/${certificateId}`}><Award /> View certificate</Link>
+                  </Button>
+                )}
+              </>
             ) : user ? (
               <form action={enrollAction.bind(null, course.id)}>
                 <SubmitButton className="h-11 w-full bg-heat font-semibold" pendingText="Enrolling…">

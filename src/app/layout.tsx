@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
+import { NotificationToasts } from "@/components/notifications/toasts";
+import { CountersProvider } from "@/components/realtime/counters";
+import { RealtimeProvider } from "@/components/realtime/provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { getCounters } from "@/lib/data/counters";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -9,7 +14,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 const unbounded = Unbounded({ subsets: ["latin"], variable: "--font-unbounded", weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: { default: "EduForge — learn by building", template: "%s · EduForge" },
   description:
     "EduForge is a learning platform where instructors publish video courses and students learn with progress tracking, direct instructor chat and an AI tutor.",
@@ -18,7 +23,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#090d1f", colorScheme: "dark" };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getCurrentUser();
+  const counters = user ? await getCounters(user) : null;
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
@@ -28,7 +35,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <TooltipProvider>{children}</TooltipProvider>
+        <RealtimeProvider enabled={!!user}>
+          <CountersProvider initial={counters}>
+            <TooltipProvider>{children}</TooltipProvider>
+            {user && <NotificationToasts />}
+          </CountersProvider>
+        </RealtimeProvider>
         <Toaster position="bottom-right" richColors />
       </body>
     </html>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Layers, Users } from "lucide-react";
+import { Layers, Star, Users } from "lucide-react";
 import { CourseCover } from "@/components/course-cover";
 import { LEVEL_LABEL } from "@/lib/format";
 import type { Level } from "@/lib/db/schema";
@@ -14,6 +14,8 @@ export type CourseCardData = {
   instructorName: string;
   lessonCount: number;
   studentCount: number;
+  ratingAvg?: number;
+  ratingCount?: number;
 };
 
 export function CourseCard({ course, priority }: { course: CourseCardData; priority?: boolean }) {
@@ -39,6 +41,13 @@ export function CourseCard({ course, priority }: { course: CourseCardData; prior
           <span className="text-foreground/80">{course.instructorName}</span>
           <span className="inline-flex items-center gap-1"><Layers className="size-3.5" />{course.lessonCount} lessons</span>
           <span className="inline-flex items-center gap-1"><Users className="size-3.5" />{course.studentCount}</span>
+          {course.ratingCount ? (
+            <span className="inline-flex items-center gap-1" aria-label={`Rated ${course.ratingAvg} out of 5 by ${course.ratingCount} learners`}>
+              <Star className="size-3.5 fill-ember-hot text-ember-hot" />
+              <span className="text-foreground/80 tabular-nums">{course.ratingAvg?.toFixed(1)}</span>
+              <span>({course.ratingCount})</span>
+            </span>
+          ) : null}
           <span className="ml-auto rounded-full border border-border px-2 py-0.5">{LEVEL_LABEL[course.level]}</span>
         </div>
       </div>

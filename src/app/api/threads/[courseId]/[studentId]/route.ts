@@ -1,8 +1,8 @@
 import { getCurrentUser } from "@/lib/auth/dal";
-import { authorizeThread, getThreadMessages } from "@/lib/data/messages";
+import { authorizeThread, getThreadMessages, serializeMessage } from "@/lib/data/messages";
 import { z } from "zod";
 
-/** Polled by the chat UI for new messages. */
+/** Full thread, used by the chat UI as a fallback when the realtime connection is down. */
 export async function GET(_: Request, ctx: RouteContext<"/api/threads/[courseId]/[studentId]">) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,5 +13,5 @@ export async function GET(_: Request, ctx: RouteContext<"/api/threads/[courseId]
   const thread = await authorizeThread(user, courseId, studentId);
   if (!thread) return Response.json({ error: "Not found" }, { status: 404 });
   const messages = await getThreadMessages(courseId, studentId);
-  return Response.json({ messages }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ messages: messages.map(serializeMessage) }, { headers: { "Cache-Control": "no-store" } });
 }

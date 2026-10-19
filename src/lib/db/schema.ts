@@ -1,11 +1,15 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
+  check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -16,6 +20,15 @@ import {
 export const roleEnum = pgEnum("role", ["student", "instructor", "admin"]);
 export const courseStatusEnum = pgEnum("course_status", ["draft", "published"]);
 export const levelEnum = pgEnum("course_level", ["beginner", "intermediate", "advanced"]);
+export const liveStatusEnum = pgEnum("live_status", ["scheduled", "live", "ended"]);
+export const notificationKindEnum = pgEnum("notification_kind", [
+  "message",
+  "live",
+  "announcement",
+  "lesson",
+  "certificate",
+  "review",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -34,6 +47,10 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     role: roleEnum("role").notNull().default("student"),
     bio: text("bio"),
+    /** Bumped while the user has the app open; drives "online" indicators. */
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    /** Sessions issued before this are rejected, so a password change signs out other devices. */
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex("users_email_idx").on(sql`lower(${t.email})`)],
@@ -144,6 +161,205 @@ export const messages = pgTable(
   (t) => [index("messages_thread_idx").on(t.courseId, t.studentId, t.createdAt)],
 );
 
+/* ───────────────────────────── Live classes ───────────────────────────── */
+
+/** A scheduled broadcast for a course, streamed through a Mux live stream. */
+export const liveSessions = pgTable(
+  "live_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 140 }).notNull(),
+    description: text("description").notNull().default(""),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    status: liveStatusEnum("status").notNull().default("scheduled"),
+    muxStreamId: text("mux_stream_id"),
+    /** Secret: anyone holding it can broadcast. Only ever sent to the course owner. */
+    muxStreamKey: text("mux_stream_key"),
+    muxPlaybackId: text("mux_playback_id"),
+    signedPlayback: boolean("signed_playback").notNull().default(false),
+    /** Last time the encoder state was pulled from Mux; throttles status syncs. */
+    syncedAt: timestamp("synced_at", { withTimezone: true }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    replayAssetId: text("replay_asset_id"),
+    replayPlaybackId: text("replay_playback_id"),
+    pinnedNote: varchar("pinned_note", { length: 280 }),
+    ...timestamps,
+  },
+  (t) => [
+    index("live_sessions_course_idx").on(t.courseId, t.scheduledFor),
+    index("live_sessions_status_idx").on(t.status),
+    uniqueIndex("live_sessions_mux_stream_idx").on(t.muxStreamId),
+  ],
+);
+
+export const liveChatMessages = pgTable(
+  "live_chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => liveSessions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: varchar("body", { length: 500 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("live_chat_session_idx").on(t.sessionId, t.createdAt)],
+);
+
+/** Who is watching right now. Rows are refreshed by the viewer's realtime connection. */
+export const livePresence = pgTable(
+  "live_presence",
+  {
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => liveSessions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.userId] })],
+);
+
+/* ───────────────────────── Notifications & realtime ───────────────────────── */
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: notificationKindEnum("kind").notNull(),
+    title: varchar("title", { length: 160 }).notNull(),
+    body: varchar("body", { length: 280 }).notNull().default(""),
+    href: text("href").notNull(),
+    /** Unread notifications sharing a key collapse into one (e.g. a busy chat thread). */
+    groupKey: varchar("group_key", { length: 160 }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_idx").on(t.userId, t.createdAt),
+    uniqueIndex("notifications_unread_group_idx")
+      .on(t.userId, t.groupKey)
+      .where(sql`${t.readAt} is null and ${t.groupKey} is not null`),
+  ],
+);
+
+/**
+ * Durable event log behind the realtime connection. Inserts are announced with NOTIFY;
+ * reconnecting clients replay what they missed from here. Pruned after a day.
+ */
+export const realtimeEvents = pgTable(
+  "realtime_events",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    topic: varchar("topic", { length: 120 }).notNull(),
+    type: varchar("type", { length: 60 }).notNull(),
+    data: jsonb("data").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("realtime_events_topic_idx").on(t.topic, t.id), index("realtime_events_created_idx").on(t.createdAt)],
+);
+
+/* ─────────────────────── Announcements, reviews, certificates ─────────────────────── */
+
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 140 }).notNull(),
+    body: text("body").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("announcements_course_idx").on(t.courseId, t.createdAt)],
+);
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    rating: smallint("rating").notNull(),
+    body: text("body").notNull().default(""),
+    ...timestamps,
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.courseId] }),
+    index("reviews_course_idx").on(t.courseId, t.createdAt),
+    check("reviews_rating_range", sql`${t.rating} between 1 and 5`),
+  ],
+);
+
+/** Issued once a student completes every lesson. The id doubles as the public verification code. */
+export const certificates = pgTable(
+  "certificates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("certificates_user_course_idx").on(t.userId, t.courseId)],
+);
+
+/* ───────────────────────────────── Quizzes ───────────────────────────────── */
+
+export const quizQuestions = pgTable(
+  "quiz_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    lessonId: uuid("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    prompt: text("prompt").notNull(),
+    options: jsonb("options").$type<string[]>().notNull(),
+    correctIndex: smallint("correct_index").notNull(),
+    explanation: text("explanation").notNull().default(""),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("quiz_questions_lesson_idx").on(t.lessonId, t.position)],
+);
+
+export const quizAttempts = pgTable(
+  "quiz_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lessonId: uuid("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    total: integer("total").notNull(),
+    answers: jsonb("answers").$type<number[]>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("quiz_attempts_user_lesson_idx").on(t.userId, t.lessonId, t.createdAt)],
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   courses: many(courses),
   enrollments: many(enrollments),
@@ -167,5 +383,8 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
+export type LiveSession = typeof liveSessions.$inferSelect;
 export type Role = (typeof roleEnum.enumValues)[number];
+export type LiveStatus = (typeof liveStatusEnum.enumValues)[number];
+export type NotificationKind = (typeof notificationKindEnum.enumValues)[number];
 export type Level = (typeof levelEnum.enumValues)[number];

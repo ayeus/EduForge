@@ -1,5 +1,6 @@
 /**
- * Seeds demo accounts and courses. Safe to re-run: exits if the demo instructor already exists.
+ * Seeds demo accounts and courses. Safe to re-run: existing demo data is left alone and
+ * only the missing pieces (e.g. live classes, quizzes, reviews) are added.
  *   pnpm db:seed
  * Demo logins (change or delete these in production):
  *   instructor@eduforge.dev / forge-demo-1
@@ -7,7 +8,7 @@
  */
 import bcrypt from "bcryptjs";
 import { config } from "dotenv";
-import { eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../src/lib/db/schema";
@@ -65,7 +66,7 @@ async function main() {
 
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, "instructor@eduforge.dev"));
   if (existing) {
-    console.log("[seed] demo data already present, nothing to do.");
+    await seedExtras(db, existing.id);
     await client.end();
     return;
   }
@@ -117,8 +118,102 @@ async function main() {
       });
     }
   }
+  await seedExtras(db, instructor.id);
   console.log("[seed] done. Logins: instructor@eduforge.dev / student@eduforge.dev, password forge-demo-1");
   await client.end();
+}
+
+type Db = ReturnType<typeof drizzle<typeof schema>>;
+
+/** Demo content for live classes, announcements, reviews and quizzes. Added once. */
+async function seedExtras(db: Db, instructorId: string) {
+  const [course] = await db
+    .select()
+    .from(schema.courses)
+    .where(and(eq(schema.courses.instructorId, instructorId), eq(schema.courses.title, COURSES[0].title)))
+    .limit(1);
+  if (!course) return;
+  const [{ n }] = await db.select({ n: count() }).from(schema.announcements).where(eq(schema.announcements.courseId, course.id));
+  if (n > 0) {
+    console.log("[seed] demo data already present, nothing to do.");
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash("forge-demo-1", 12);
+  const [student] = await db.select().from(schema.users).where(eq(schema.users.email, "student@eduforge.dev")).limit(1);
+  const classmates = await db
+    .insert(schema.users)
+    .values([
+      { name: "Priya Shah", email: "priya@eduforge.dev", passwordHash, role: "student" as const },
+      { name: "Leo Martins", email: "leo@eduforge.dev", passwordHash, role: "student" as const },
+    ])
+    .onConflictDoNothing()
+    .returning();
+  if (classmates.length) {
+    await db.insert(schema.enrollments).values(classmates.map((u) => ({ userId: u.id, courseId: course.id }))).onConflictDoNothing();
+  }
+
+  await db.insert(schema.announcements).values({
+    courseId: course.id,
+    authorId: instructorId,
+    title: "Live Q&A tomorrow",
+    body: "Bring your questions about **Server Components** and streaming. I'll walk through a real app and answer questions in the chat. The replay goes up right after.",
+  });
+
+  const tomorrow = new Date();
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setUTCHours(17, 0, 0, 0);
+  await db.insert(schema.liveSessions).values({
+    courseId: course.id,
+    title: "Live Q&A: Server Components in practice",
+    description: "We'll refactor a client-heavy page into server components, measure the difference and take your questions.",
+    scheduledFor: tomorrow,
+  });
+
+  const reviewers = [
+    ...(student ? [{ userId: student.id, rating: 5, body: "The clearest explanation of server components I've found. The caching lesson alone was worth it." }] : []),
+    ...(classmates[0] ? [{ userId: classmates[0].id, rating: 4, body: "Great pacing. I'd love a lesson on testing too." }] : []),
+    ...(classmates[1] ? [{ userId: classmates[1].id, rating: 5, body: "" }] : []),
+  ];
+  if (reviewers.length) {
+    await db.insert(schema.reviews).values(reviewers.map((r) => ({ ...r, courseId: course.id }))).onConflictDoNothing();
+  }
+
+  const lessons = await db
+    .select({ id: schema.lessons.id })
+    .from(schema.lessons)
+    .where(eq(schema.lessons.courseId, course.id))
+    .orderBy(asc(schema.lessons.position));
+  const serverLesson = lessons[2];
+  if (serverLesson) {
+    await db.insert(schema.quizQuestions).values([
+      {
+        lessonId: serverLesson.id,
+        position: 0,
+        prompt: "Where do Server Components run?",
+        options: ["Only in the browser", "Only on the server", "On both, depending on the bundle"],
+        correctIndex: 1,
+        explanation: "Server Components render only on the server and send no JavaScript for themselves to the browser.",
+      },
+      {
+        lessonId: serverLesson.id,
+        position: 1,
+        prompt: "Which of these needs a Client Component?",
+        options: ["Reading from a database", "A button with an onClick handler", "Rendering Markdown from a CMS"],
+        correctIndex: 1,
+        explanation: "Event handlers and browser state need interactivity, which only Client Components have.",
+      },
+      {
+        lessonId: serverLesson.id,
+        position: 2,
+        prompt: "Can a Server Component render a Client Component?",
+        options: ["Yes", "No"],
+        correctIndex: 0,
+        explanation: "Yes. Server Components can import and render Client Components and pass them serializable props.",
+      },
+    ]);
+  }
+  console.log("[seed] added demo live class, announcement, reviews and quiz.");
 }
 
 main().catch((e) => {

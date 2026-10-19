@@ -6,7 +6,7 @@ import type { Role } from "@/lib/db/schema";
 export const SESSION_COOKIE = "ef_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
 
-export type SessionPayload = { sub: string; role: Role };
+export type SessionPayload = { sub: string; role: Role; iat?: number };
 
 function key() {
   const secret = process.env.AUTH_SECRET;
@@ -30,7 +30,7 @@ export async function decodeSession(token: string | undefined): Promise<SessionP
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
     if (typeof payload.sub !== "string") return null;
-    return { sub: payload.sub, role: payload.role as Role };
+    return { sub: payload.sub, role: payload.role as Role, iat: payload.iat };
   } catch {
     return null;
   }
