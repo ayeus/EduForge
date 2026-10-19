@@ -187,6 +187,14 @@ export const liveSessions = pgTable(
     replayAssetId: text("replay_asset_id"),
     replayPlaybackId: text("replay_playback_id"),
     pinnedNote: varchar("pinned_note", { length: 280 }),
+    /** How the class is broadcast: straight from the host's browser (WebRTC) or via an encoder to Mux. */
+    broadcastMode: varchar("broadcast_mode", { length: 16 }).$type<"browser" | "encoder">(),
+    /** Who is broadcasting from their browser; viewers connect to this person. */
+    broadcasterId: uuid("broadcaster_id").references(() => users.id, { onDelete: "set null" }),
+    /** Heartbeat from the broadcasting browser; a silent host ends the class automatically. */
+    hostSeenAt: timestamp("host_seen_at", { withTimezone: true }),
+    /** Storage keys of browser-recorded segments, played back in order as the replay. */
+    recordingKeys: jsonb("recording_keys").$type<string[]>().notNull().default([]),
     ...timestamps,
   },
   (t) => [

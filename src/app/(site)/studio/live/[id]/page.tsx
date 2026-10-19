@@ -4,7 +4,9 @@ import { z } from "zod";
 import { ControlRoom } from "@/components/live/control-room";
 import { requireRole } from "@/lib/auth/dal";
 import { RTMP_SERVER_URL, RTMP_SERVER_URL_PLAIN, muxConfigured, playbackTokens } from "@/lib/live/mux";
+import { replayFor } from "@/lib/live/replay";
 import { getLiveAccess, getLiveChat, viewerCount } from "@/lib/live/sessions";
+import { iceServers, maxBrowserViewers } from "@/lib/live/webrtc";
 
 export const metadata: Metadata = { title: "Control room" };
 
@@ -16,11 +18,11 @@ export default async function ControlRoomPage({ params }: PageProps<"/studio/liv
   if (!access?.isHost) notFound();
   const { session, course } = access;
 
-  const [chat, viewers, liveTokens, replayTokens] = await Promise.all([
+  const [chat, viewers, liveTokens, replay] = await Promise.all([
     getLiveChat(id, course.instructorId),
     viewerCount(id),
     session.muxPlaybackId && session.status !== "ended" ? playbackTokens(session.muxPlaybackId, session.signedPlayback, true) : undefined,
-    session.replayPlaybackId ? playbackTokens(session.replayPlaybackId, session.signedPlayback, false) : undefined,
+    replayFor(session),
   ]);
 
   return (
@@ -32,6 +34,8 @@ export default async function ControlRoomPage({ params }: PageProps<"/studio/liv
         scheduledFor: session.scheduledFor.toISOString(),
         status: session.status,
         startedAt: session.startedAt?.toISOString() ?? null,
+        mode: session.broadcastMode,
+        broadcasterId: session.broadcasterId,
       }}
       course={{ id: course.id, title: course.title }}
       viewerId={user.id}
@@ -42,10 +46,12 @@ export default async function ControlRoomPage({ params }: PageProps<"/studio/liv
           : null
       }
       live={session.muxPlaybackId ? { playbackId: session.muxPlaybackId, tokens: liveTokens } : null}
-      replay={session.replayPlaybackId ? { playbackId: session.replayPlaybackId, tokens: replayTokens } : null}
+      replay={replay}
       chat={chat}
       pinned={session.pinnedNote}
       viewers={viewers}
+      iceServers={iceServers()}
+      maxViewers={maxBrowserViewers()}
     />
   );
 }

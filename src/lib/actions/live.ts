@@ -8,7 +8,8 @@ import { requireRole, requireUser, type CurrentUser } from "@/lib/auth/dal";
 import { db, schema } from "@/lib/db";
 import { REACTIONS, type Reaction } from "@/lib/live/constants";
 import { createLiveStream, mux, muxConfigured } from "@/lib/live/mux";
-import { endSession, getLiveAccess } from "@/lib/live/sessions";
+import { addRecordingSegment, endSession, getLiveAccess, startBrowserBroadcast } from "@/lib/live/sessions";
+import { keyBelongsTo } from "@/lib/storage";
 import { notifyCourse } from "@/lib/notifications";
 import { publish, signal, topics } from "@/lib/realtime/server";
 import { echo, type FormState } from "./types";
@@ -137,6 +138,30 @@ export async function resetStreamKeyAction(sessionId: string): Promise<FormState
   }
   revalidatePath(`/studio/live/${sessionId}`);
   return { ok: true, message: "New stream key issued. Update it in your streaming software." };
+}
+
+/** Start (or resume) broadcasting from the host's browser. */
+export async function goLiveAction(sessionId: string): Promise<FormState> {
+  const user = await requireRole("instructor");
+  const access = await hostSession(user, sessionId);
+  if (!access) return { error: "Live class not found." };
+  if (access.session.status === "ended") return { error: "This class has ended. Schedule a new one to go live again." };
+  await startBrowserBroadcast(access.session, user.id);
+  touchLive(access.course.id, sessionId);
+  return { ok: true };
+}
+
+/** A finished piece of the host's browser recording was uploaded; add it to the replay. */
+export async function addRecordingSegmentAction(sessionId: string, key: string): Promise<FormState> {
+  const user = await requireRole("instructor");
+  const access = await hostSession(user, sessionId);
+  if (!access) return { error: "Live class not found." };
+  if (!keyBelongsTo(key, access.course.id)) return { error: "Invalid recording upload." };
+  await addRecordingSegment(sessionId, key);
+  revalidatePath(`/live/${sessionId}`);
+  revalidatePath(`/studio/live/${sessionId}`);
+  revalidatePath("/live");
+  return { ok: true };
 }
 
 export async function endLiveAction(sessionId: string): Promise<FormState> {

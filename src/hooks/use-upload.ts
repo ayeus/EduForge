@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { uploadToStorage, type UploadKind } from "@/lib/upload-client";
 
-export type UploadKind = "video" | "attachment" | "cover";
+export type { UploadKind };
 export type UploadState =
   | { status: "idle" }
   | { status: "uploading"; progress: number; name: string }
@@ -38,35 +39,20 @@ export function useUpload(courseId: string, kind: UploadKind) {
     async (file: File) => {
       setState({ status: "uploading", progress: 0, name: file.name });
       try {
-        const contentType = file.type || "application/octet-stream";
-        const res = await fetch("/api/uploads", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId, kind, filename: file.name, contentType, size: file.size }),
-        });
-        const data = (await res.json()) as { key?: string; url?: string; headers?: Record<string, string>; error?: string };
-        if (!res.ok || !data.url || !data.key) throw new Error(data.error ?? "Couldn't start the upload.");
-
         const durationPromise = kind === "video" ? readVideoDuration(file) : Promise.resolve(undefined);
-
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhrRef.current = xhr;
-          xhr.open("PUT", data.url!);
-          for (const [k, v] of Object.entries(data.headers ?? {})) xhr.setRequestHeader(k, v);
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) setState({ status: "uploading", progress: e.loaded / e.total, name: file.name });
-          };
-          xhr.onload = () =>
-            xhr.status >= 200 && xhr.status < 300
-              ? resolve()
-              : reject(new Error(`Upload failed (${xhr.status}). Check the storage bucket's CORS settings.`));
-          xhr.onerror = () => reject(new Error("Upload failed. Check your connection, or the bucket's CORS settings."));
-          xhr.onabort = () => reject(new Error("Upload cancelled."));
-          xhr.send(file);
+        const key = await uploadToStorage({
+          courseId,
+          kind,
+          body: file,
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+          onProgress: (progress) => setState({ status: "uploading", progress, name: file.name }),
+          onXhr: (xhr) => {
+            xhrRef.current = xhr;
+          },
         });
 
-        const done: UploadState = { status: "done", key: data.key, name: file.name, durationSeconds: await durationPromise };
+        const done: UploadState = { status: "done", key, name: file.name, durationSeconds: await durationPromise };
         setState(done);
         return done;
       } catch (err) {

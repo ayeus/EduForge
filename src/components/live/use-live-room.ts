@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveChannel } from "@/components/realtime/provider";
 import type { LiveStatus } from "@/lib/db/schema";
+import type { SignalEnvelope } from "./rtc/signals";
+
+export type BroadcastMode = "browser" | "encoder" | null;
 
 export type ChatMessage = { id: string; body: string; createdAt: string; userId: string; name: string; host: boolean };
 export type FloatingReaction = { key: number; emoji: string; x: number };
@@ -18,19 +21,32 @@ export function useLiveRoom({
   sessionId,
   viewerId,
   status: initialStatus,
+  mode: initialMode,
   chat: initialChat,
   pinned: initialPinned,
   viewers: initialViewers,
+  onSignal,
+  onHostReady,
 }: {
   sessionId: string;
   viewerId: string;
   status: LiveStatus;
+  mode: BroadcastMode;
   chat: ChatMessage[];
   pinned: string | null;
   viewers: number;
+  /** WebRTC signalling addressed to this person (browser broadcasts). */
+  onSignal?: (envelope: SignalEnvelope) => void;
+  /** The host started or resumed a browser broadcast. */
+  onHostReady?: () => void;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
+  const [mode, setMode] = useState<BroadcastMode>(initialMode);
+  const callbacks = useRef({ onSignal, onHostReady });
+  useEffect(() => {
+    callbacks.current = { onSignal, onHostReady };
+  });
   const [chat, setChat] = useState(initialChat);
   const [pinned, setPinned] = useState(initialPinned);
   const [viewers, setViewers] = useState(initialViewers);
@@ -55,9 +71,17 @@ export function useLiveRoom({
   const connection = useLiveChannel(sessionId, (m) => {
     const data = m.data as Record<string, unknown>;
     switch (m.type) {
-      case "live.status":
-        setStatus(data.status as LiveStatus);
+      case "live.status": {
+        const next = data.status as LiveStatus;
+        const nextMode = (data.broadcastMode as BroadcastMode) ?? null;
+        setStatus(next);
+        setMode(nextMode);
+        if (next === "live" && nextMode === "browser") callbacks.current.onHostReady?.();
         refresh();
+        break;
+      }
+      case "live.signal":
+        callbacks.current.onSignal?.(data as unknown as SignalEnvelope);
         break;
       case "live.chat":
         addChat(data.message as ChatMessage);
@@ -82,5 +106,21 @@ export function useLiveRoom({
     }
   });
 
-  return { status, setStatus, chat, addChat, setChat, pinned, setPinned, viewers, setViewers, reactions, spawnReaction, connection, refresh };
+  return {
+    status,
+    setStatus,
+    mode,
+    setMode,
+    chat,
+    addChat,
+    setChat,
+    pinned,
+    setPinned,
+    viewers,
+    setViewers,
+    reactions,
+    spawnReaction,
+    connection,
+    refresh,
+  };
 }

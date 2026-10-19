@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Copy, ExternalLink, Eye, EyeOff, KeyRound, Loader2, RefreshCw, Square, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Copy, ExternalLink, Eye, EyeOff, KeyRound, Loader2, MonitorPlay, RefreshCw, Square, Trash2, Webcam } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -21,27 +21,42 @@ import { Countdown, LocalTime } from "@/components/local-time";
 import { createStreamAction, deleteLiveAction, endLiveAction, resetStreamKeyAction } from "@/lib/actions/live";
 import type { LiveStatus } from "@/lib/db/schema";
 import type { PlayerTokens } from "@/lib/live/mux-types";
+import type { Replay } from "@/lib/live/types";
 import { cn } from "@/lib/utils";
+import { SegmentPlayer } from "./browser-stream";
+import { BrowserStudio, type StudioReport } from "./browser-studio";
 import { LiveChat } from "./live-chat";
 import { LivePlayer } from "./live-player";
+import type { IceServerConfig, SignalEnvelope } from "./rtc/signals";
 import { ReactionLayer } from "./reactions";
 import { EditLiveDialog } from "./schedule-form";
 import { LiveStatusPill } from "./status-pill";
-import { useLiveRoom, type ChatMessage } from "./use-live-room";
+import { useLiveRoom, type BroadcastMode, type ChatMessage } from "./use-live-room";
 
 type Encoder = "idle" | "active" | "disabled" | "unknown";
 
 type Props = {
-  session: { id: string; title: string; description: string; scheduledFor: string; status: LiveStatus; startedAt: string | null };
+  session: {
+    id: string;
+    title: string;
+    description: string;
+    scheduledFor: string;
+    status: LiveStatus;
+    startedAt: string | null;
+    mode: BroadcastMode;
+    broadcasterId: string | null;
+  };
   course: { id: string; title: string };
   viewerId: string;
   muxReady: boolean;
   stream: { serverUrl: string; serverUrlPlain: string; streamKey: string } | null;
   live: { playbackId: string; tokens?: PlayerTokens } | null;
-  replay: { playbackId: string; tokens?: PlayerTokens } | null;
+  replay: Replay;
   chat: ChatMessage[];
   pinned: string | null;
   viewers: number;
+  iceServers: IceServerConfig[];
+  maxViewers: number;
 };
 
 function CopyField({ label, value, secret }: { label: string; value: string; secret?: boolean }) {
@@ -134,27 +149,103 @@ function SignalChain({ encoder, status, viewers, muxReady }: { encoder: Encoder;
   );
 }
 
+/** The browser broadcast's version of the chain: camera → recording → students. */
+function BrowserChain({ report, status, viewers }: { report: StudioReport | null; status: LiveStatus; viewers: number }) {
+  const phase = report?.phase ?? "off";
+  const rec = report?.rec;
+  const live = phase === "live";
+  const nodes = [
+    {
+      label: "Your camera",
+      state: live ? "Broadcasting" : phase === "off" ? "Off" : phase === "saving" || phase === "done" ? "Stopped" : "Ready",
+      on: live,
+      ready: phase === "preview" || phase === "starting",
+    },
+    {
+      label: "Recording",
+      state: rec?.recording
+        ? "Recording"
+        : rec && rec.pending > 0
+          ? `Saving${rec.progress ? ` ${Math.round(rec.progress * 100)}%` : "…"}`
+          : rec?.saved
+            ? `Saved (${rec.saved} ${rec.saved === 1 ? "part" : "parts"})`
+            : report?.recordOn === false
+              ? "Off"
+              : "Starts when you go live",
+      on: !!rec?.recording,
+      ready: !!rec?.saved,
+    },
+    {
+      label: "Students",
+      state: status === "live" ? `${live ? report!.viewers : viewers} watching` : status === "ended" ? "Class over" : "In the waiting room",
+      on: status === "live" && (live ? report!.viewers : viewers) > 0,
+    },
+  ];
+  return (
+    <ol className="grid gap-3 sm:grid-cols-3" aria-label="Broadcast status">
+      {nodes.map((n, i) => (
+        <li key={n.label} className="relative">
+          <div
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors",
+              n.on ? "border-ember/60 shadow-[0_0_30px_-12px_var(--ember)]" : "border-border",
+            )}
+          >
+            <span
+              className={cn(
+                "size-2.5 shrink-0 rounded-full",
+                n.on ? "animate-live-pulse bg-ember" : n.ready ? "bg-emerald-400/80" : "bg-muted-foreground/40",
+              )}
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <div className="text-xs text-muted-foreground">{n.label}</div>
+              <div className="truncate text-sm font-medium">{n.state}</div>
+            </div>
+          </div>
+          {i < nodes.length - 1 && (
+            <span className={cn("absolute top-1/2 -right-3 hidden h-px w-3 sm:block", n.on ? "bg-ember" : "bg-border")} aria-hidden />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export function ControlRoom(props: Props) {
   const { session, course, viewerId, muxReady, stream, live, replay } = props;
+  const signalHandler = useRef<((env: SignalEnvelope) => void) | null>(null);
+  const registerSignalHandler = useCallback((fn: ((env: SignalEnvelope) => void) | null) => {
+    signalHandler.current = fn;
+  }, []);
   const room = useLiveRoom({
     sessionId: session.id,
     viewerId,
     status: session.status,
+    mode: session.mode,
     chat: props.chat,
     pinned: props.pinned,
     viewers: props.viewers,
+    onSignal: (env) => signalHandler.current?.(env),
   });
   const { status } = room;
   const [encoder, setEncoder] = useState<Encoder>("unknown");
   const [pending, start] = useTransition();
+  const [method, setMethod] = useState<"browser" | "encoder">(session.mode === "encoder" ? "encoder" : "browser");
+  const [report, setReport] = useState<StudioReport | null>(null);
+  const broadcasting = report?.phase === "live";
+  const studioBusy = report?.phase === "live" || report?.phase === "starting" || report?.phase === "saving";
+  const resumable = session.status === "live" && session.mode === "browser" && session.broadcasterId === viewerId;
 
-  // Ask Mux for the encoder state every few seconds until the class is over.
+  // Every few seconds: ask Mux for the encoder state, and (when broadcasting from this browser)
+  // let the server know the host is still here.
   useEffect(() => {
-    if (status === "ended" || !stream) return;
+    if (status === "ended") return;
+    if (!broadcasting && !(method === "encoder" && stream)) return;
     let stopped = false;
     const tick = async () => {
       try {
-        const res = await fetch(`/api/live/${session.id}/status`, { cache: "no-store" });
+        const res = await fetch(`/api/live/${session.id}/status${broadcasting ? "?broadcasting=1" : ""}`, { cache: "no-store" });
         if (!res.ok || stopped) return;
         const data = (await res.json()) as { status: LiveStatus; encoder: Encoder; viewers: number };
         setEncoder(data.encoder);
@@ -171,7 +262,7 @@ export function ControlRoom(props: Props) {
       stopped = true;
       clearInterval(t);
     };
-  }, [session.id, status, stream]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session.id, status, stream, method, broadcasting]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = (fn: () => Promise<{ error?: string; message?: string } | null | undefined>) =>
     start(async () => {
@@ -230,7 +321,10 @@ export function ControlRoom(props: Props) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>End “{session.title}” for everyone?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The stream stops immediately, chat closes and the stream key stops working. {status === "live" ? "Students get the recording as a replay." : ""}
+                    {method === "browser"
+                      ? "Your broadcast stops and chat closes. If you're recording, keep this tab open while the recording saves."
+                      : "The stream stops immediately, chat closes and the stream key stops working."}{" "}
+                    {status === "live" ? "Students get the recording as a replay." : ""}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -269,17 +363,77 @@ export function ControlRoom(props: Props) {
         </div>
       </div>
 
-      <div className="mt-8">
-        <SignalChain encoder={encoder} status={status} viewers={room.viewers} muxReady={muxReady} />
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="How you broadcast">
+          {(
+            [
+              ["browser", Webcam, "From this browser"],
+              ["encoder", MonitorPlay, "OBS or streaming app"],
+            ] as const
+          ).map(([value, Icon, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={method === value}
+              disabled={studioBusy || (status === "live" && session.mode !== null && session.mode !== value && !resumable)}
+              onClick={() => setMethod(value)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors disabled:opacity-50",
+                method === value ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4" /> {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {method === "browser"
+            ? "Camera, microphone and screen sharing, right here. Best for classes up to " + props.maxViewers + "."
+            : "Stream from OBS, Zoom or a phone through Mux. Best for large audiences."}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        {method === "browser" ? (
+          <BrowserChain report={report} status={status} viewers={room.viewers} />
+        ) : (
+          <SignalChain encoder={encoder} status={status} viewers={room.viewers} muxReady={muxReady} />
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-6">
+          {method === "browser" && (status !== "ended" || studioBusy || report?.phase === "done") ? (
+            <div className="relative">
+              <BrowserStudio
+                sessionId={session.id}
+                courseId={course.id}
+                status={status}
+                resumable={resumable}
+                startedAt={session.startedAt}
+                iceServers={props.iceServers}
+                maxViewers={props.maxViewers}
+                registerSignalHandler={registerSignalHandler}
+                onReport={setReport}
+                onWentLive={() => {
+                  room.setStatus("live");
+                  room.setMode("browser");
+                  room.refresh();
+                }}
+              />
+              <div className="pointer-events-none absolute inset-x-0 top-0 aspect-video">
+                <ReactionLayer reactions={room.reactions} />
+              </div>
+            </div>
+          ) : (
           <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
-            {status === "live" && live ? (
+            {status === "live" && live && session.mode !== "browser" ? (
               <LivePlayer playbackId={live.playbackId} tokens={live.tokens} live title={`Preview: ${session.title}`} viewerId={viewerId} />
-            ) : status === "ended" && replay ? (
+            ) : status === "ended" && replay?.kind === "mux" ? (
               <LivePlayer playbackId={replay.playbackId} tokens={replay.tokens} live={false} title={session.title} viewerId={viewerId} />
+            ) : status === "ended" && replay?.kind === "file" ? (
+              <SegmentPlayer urls={replay.urls} title={session.title} />
             ) : (
               <div className="grid aspect-video place-items-center bg-blueprint p-6 text-center">
                 <div>
@@ -288,14 +442,14 @@ export function ControlRoom(props: Props) {
                       ? "Preview appears when you go live"
                       : !session.startedAt
                         ? "This class ended without going live"
-                        : live
+                        : live && session.mode !== "browser"
                           ? "Preparing the replay…"
                           : "This class has no recording"}
                   </p>
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     {status !== "ended"
                       ? "Start streaming from your encoder with the settings below. Students are switched to the stream automatically."
-                      : session.startedAt && live
+                      : session.startedAt && live && session.mode !== "browser"
                         ? "Students can watch the recording here once Mux finishes processing it."
                         : "Schedule another class whenever you're ready."}
                   </p>
@@ -304,8 +458,9 @@ export function ControlRoom(props: Props) {
             )}
             <ReactionLayer reactions={room.reactions} />
           </div>
+          )}
 
-          {status !== "ended" && (
+          {status !== "ended" && method === "encoder" && (
             <section className="rounded-2xl border border-border bg-card p-5 sm:p-6" aria-labelledby="stream-settings">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 id="stream-settings" className="flex items-center gap-2 font-display text-base font-medium">

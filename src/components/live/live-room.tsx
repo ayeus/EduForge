@@ -7,22 +7,35 @@ import { Button } from "@/components/ui/button";
 import { Countdown, LocalTime } from "@/components/local-time";
 import type { LiveStatus } from "@/lib/db/schema";
 import type { PlayerTokens } from "@/lib/live/mux-types";
+import type { Replay } from "@/lib/live/types";
+import { BrowserStreamPlayer, SegmentPlayer, useBrowserStream } from "./browser-stream";
 import { LiveChat } from "./live-chat";
 import { LivePlayer } from "./live-player";
 import { ReactionBar, ReactionLayer } from "./reactions";
 import { LiveStatusPill } from "./status-pill";
-import { useLiveRoom, type ChatMessage } from "./use-live-room";
+import type { IceServerConfig, SignalEnvelope } from "./rtc/signals";
+import { useLiveRoom, type BroadcastMode, type ChatMessage } from "./use-live-room";
 
 type Props = {
-  session: { id: string; title: string; description: string; scheduledFor: string; status: LiveStatus; startedAt: string | null };
+  session: {
+    id: string;
+    title: string;
+    description: string;
+    scheduledFor: string;
+    status: LiveStatus;
+    startedAt: string | null;
+    endedAt: string | null;
+    mode: BroadcastMode;
+  };
   course: { id: string; title: string; instructorName: string };
   viewerId: string;
   isHost: boolean;
   live: { playbackId: string; tokens?: PlayerTokens } | null;
-  replay: { playbackId: string; tokens?: PlayerTokens } | null;
+  replay: Replay;
   chat: ChatMessage[];
   pinned: string | null;
   viewers: number;
+  iceServers: IceServerConfig[];
 };
 
 /** Poll the status endpoint while something might change soon; realtime events usually beat it. */
@@ -46,9 +59,25 @@ function useStatusPoll(sessionId: string, active: boolean, every: number, onStat
   }, [sessionId, active, every]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export function LiveRoom({ session, course, viewerId, isHost, live, replay, chat, pinned, viewers }: Props) {
-  const room = useLiveRoom({ sessionId: session.id, viewerId, status: session.status, chat, pinned, viewers });
+export function LiveRoom({ session, course, viewerId, isHost, live, replay, chat, pinned, viewers, iceServers }: Props) {
+  const signal = useRef<{ handle: (env: SignalEnvelope) => void; rejoin: () => void } | null>(null);
+  const room = useLiveRoom({
+    sessionId: session.id,
+    viewerId,
+    status: session.status,
+    mode: session.mode,
+    chat,
+    pinned,
+    viewers,
+    onSignal: (env) => signal.current?.handle(env),
+    onHostReady: () => signal.current?.rejoin(),
+  });
   const { status } = room;
+  const browserLive = status === "live" && room.mode === "browser";
+  const browser = useBrowserStream({ sessionId: session.id, enabled: browserLive, iceServers });
+  useEffect(() => {
+    signal.current = { handle: browser.handleSignal, rejoin: browser.rejoin };
+  });
   const statusRef = useRef(status);
   useEffect(() => {
     statusRef.current = status;
@@ -68,10 +97,13 @@ export function LiveRoom({ session, course, viewerId, isHost, live, replay, chat
       room.refresh();
     }
   });
-  // After the class, wait for the recording to finish processing.
-  useStatusPoll(session.id, status === "ended" && !replay && !!session.startedAt && !!live, 20_000, () => room.refresh());
+  // After the class, wait for the recording to finish processing or uploading (for up to 20 minutes).
+  const endedAt = session.endedAt ? new Date(session.endedAt).getTime() : now;
+  const awaitingReplay =
+    status === "ended" && !replay && !!session.startedAt && (!!live || room.mode === "browser") && now - endedAt < 20 * 60_000;
+  useStatusPoll(session.id, awaitingReplay, 15_000, () => room.refresh());
 
-  const showLive = status === "live" && live;
+  const showLive = status === "live" && room.mode !== "browser" && live;
   const showReplay = status === "ended" && replay;
 
   return (
@@ -97,12 +129,16 @@ export function LiveRoom({ session, course, viewerId, isHost, live, replay, chat
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
           <div className="relative overflow-hidden rounded-2xl border border-border bg-black shadow-[0_30px_80px_-40px_rgb(255_122_47/0.35)]">
-            {showLive ? (
+            {browserLive ? (
+              <BrowserStreamPlayer stream={browser.stream} state={browser.state} title={session.title} />
+            ) : showLive ? (
               <LivePlayer playbackId={live.playbackId} tokens={live.tokens} live title={session.title} viewerId={viewerId} />
-            ) : showReplay ? (
+            ) : showReplay && replay.kind === "mux" ? (
               <LivePlayer playbackId={replay.playbackId} tokens={replay.tokens} live={false} title={session.title} viewerId={viewerId} />
+            ) : showReplay && replay.kind === "file" ? (
+              <SegmentPlayer urls={replay.urls} title={session.title} />
             ) : (
-              <Stage status={status} session={session} hasStream={!!live} />
+              <Stage status={status} session={session} hasStream={!!live} awaitingReplay={awaitingReplay} />
             )}
             <ReactionLayer reactions={room.reactions} />
           </div>
@@ -147,7 +183,17 @@ export function LiveRoom({ session, course, viewerId, isHost, live, replay, chat
   );
 }
 
-function Stage({ status, session, hasStream }: { status: LiveStatus; session: Props["session"]; hasStream: boolean }) {
+function Stage({
+  status,
+  session,
+  hasStream,
+  awaitingReplay,
+}: {
+  status: LiveStatus;
+  session: Props["session"];
+  hasStream: boolean;
+  awaitingReplay: boolean;
+}) {
   return (
     <div className="relative grid aspect-video place-items-center bg-blueprint bg-background p-6 text-center">
       <div
@@ -179,7 +225,7 @@ function Stage({ status, session, hasStream }: { status: LiveStatus; session: Pr
           <>
             <p className="font-display text-xl">The class is live</p>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              {hasStream ? "Connecting to the stream…" : "Video isn't available for this class. Follow along in the chat."}
+              {hasStream ? "Connecting to the stream…" : "Waiting for your instructor's video. Follow along in the chat."}
             </p>
           </>
         ) : (
@@ -188,8 +234,8 @@ function Stage({ status, session, hasStream }: { status: LiveStatus; session: Pr
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               {!session.startedAt
                 ? "It didn't go live, so there's no recording."
-                : hasStream
-                  ? "The recording is being prepared and will appear here automatically."
+                : awaitingReplay
+                  ? "The recording is being saved and will appear here automatically."
                   : "There's no recording of this class."}
             </p>
           </>

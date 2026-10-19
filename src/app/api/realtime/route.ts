@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     if (!z.uuid().safeParse(liveId).success) return new Response("Not found", { status: 404 });
     const access = await getLiveAccess(user, liveId);
     if (!access) return new Response("Not found", { status: 404 });
-    subscribed = [topics.live(liveId)];
+    subscribed = [topics.live(liveId), topics.liveSignal(liveId, user.id)];
     countsAsViewer = !access.isHost;
   } else {
     const courses = await courseTopics(user.id);
