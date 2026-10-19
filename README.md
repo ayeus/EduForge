@@ -10,7 +10,7 @@ The original Flask/MySQL version is kept for reference in [`legacy/flask-lms`](l
 
 **Students:** catalog with search, categories and star ratings; enroll; a player that resumes where you left off and marks a lesson done when the video ends; Markdown notes and downloadable resources; lesson quizzes with explanations; progress rings; a shareable, printable certificate when every lesson is done; course reviews; the "Ask Forge" AI tutor; and a Messages page for talking to instructors.
 
-**Live classes:** instructors schedule a class, stream from OBS, Zoom or a phone app, and run it from a control room that shows the encoder, Mux and audience status. Students wait in a countdown room, get notified the moment the class goes live, watch with low latency, chat, send reactions, and watch the recording afterwards. Instructors can pin and delete chat messages and end the class for everyone.
+**Live classes:** instructors schedule a class and go live from the control room, either **straight from the browser** (camera, microphone and screen sharing, no extra software) or from OBS, Zoom or a phone app through Mux for large audiences. Students wait in a countdown room, get notified the moment the class goes live, watch with low latency, chat, send reactions, and watch the recording afterwards. Instructors can pin and delete chat messages and end the class for everyone.
 
 **Real time:** messages arrive instantly with typing indicators, online status and read receipts. A notification bell (with optional desktop alerts) covers replies, live classes, announcements, new lessons, reviews and certificates. Unread badges update everywhere without reloading.
 
@@ -55,6 +55,8 @@ To try real-time features with two accounts at once, sign in as the instructor a
    | `MUX_SIGNING_KEY`, `MUX_PRIVATE_KEY` | recommended | Signed playback so only enrolled students can watch. Without them, streams use public playback IDs |
    | `MUX_WEBHOOK_SECRET` | no | Point a Mux webhook at `/api/webhooks/mux` for instant status changes. Without it, the app polls Mux |
    | `MUX_TEST_STREAMS` | no | `true` creates free, watermarked 5-minute test streams |
+   | `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` | recommended | A TURN relay for browser broadcasts, so students behind strict firewalls can connect. Comma-separate several URLs |
+   | `LIVE_MAX_BROWSER_VIEWERS` | no | Cap for browser broadcasts (default 30); larger classes should stream through Mux |
    | `AI_GATEWAY_API_KEY` | for the tutor | Not needed on Vercel if AI Gateway is enabled (OIDC) |
    | `AI_TUTOR_MODEL` | no | Defaults to `anthropic/claude-haiku-5.5` |
    | `NEXT_PUBLIC_SITE_URL` | no | Your production URL, used for metadata and certificate links |
@@ -74,7 +76,7 @@ To try real-time features with two accounts at once, sign in as the instructor a
       "MaxAgeSeconds": 3600 }]
    ```
 
-5. **Live classes.** Add the Mux integration (Vercel → Integrations → Mux) and connect it to the project, then redeploy. Classes created before Mux was connected get a stream from the control room's "Create stream key" button.
+5. **Live classes.** Browser broadcasts work out of the box. Add a TURN relay (`TURN_URL`, …) so every student can connect. For large classes, add the Mux integration (Vercel → Integrations → Mux), connect it to the project and redeploy; the control room's "OBS or streaming app" option then shows the stream key.
 6. **Seed (optional).** `DATABASE_URL=… pnpm db:seed`
 
 ### Minimal IAM policy for the app
@@ -124,6 +126,12 @@ drizzle/             SQL migrations
 scripts/             migrate, seed, S3 CORS
 ```
 
+## How live classes work
+
+**From the browser:** the host's browser sends its camera, microphone or screen to each student over WebRTC (peer to peer). Signalling (offers, answers, ICE candidates) travels over the realtime channel below, so no media server is needed. The host's browser also records the class in ten-minute segments and uploads them to storage; students get them as the replay. A class whose host disappears for three minutes ends itself. Because the host uploads one stream per student, this suits classes up to about 30.
+
+**Through Mux:** the host streams RTMP from OBS, Zoom or a phone to Mux, and students watch Mux's low-latency HLS. Mux records automatically. The class goes live when Mux sees video (polled, or instantly with the webhook).
+
 ## How real time works
 
 Every event (a message, a read receipt, a live class going live, a chat line) is written to the `realtime_events` table and announced with Postgres `NOTIFY`. Each server instance holds one `LISTEN` connection while it has viewers and forwards events over Server-Sent Events (`/api/realtime`). Streams close every few minutes and the browser reconnects with `Last-Event-ID`, so missed events are replayed from the table. Typing indicators, reactions and viewer counts are sent with `NOTIFY` only and never stored. No extra service is needed.
@@ -131,6 +139,7 @@ Every event (a message, a read receipt, a live class going live, a chat line) is
 ## Known limits
 
 - No password reset or email verification yet, because there's no email provider configured.
-- Instructors stream with an RTMP app (OBS, Zoom, Larix). Mux doesn't accept video straight from the browser.
+- Browser broadcasts are peer to peer: without a TURN relay a few students on strict networks may not connect, and the host's upload bandwidth limits class size. Use Mux for big audiences.
+- A browser recording segment in progress is lost if the host closes the tab mid-segment; finished segments are kept.
 - The tutor's rate limit (20 requests per minute per user) and reaction limits are per server instance. For hard limits, add a Vercel Firewall rule or a Redis-backed limiter.
 - No login brute-force protection beyond bcrypt cost. Add a Vercel Firewall rate-limit rule on `POST /login`.

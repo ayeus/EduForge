@@ -25,6 +25,8 @@ export const topics = {
   user: (id: string) => `user:${id}`,
   course: (id: string) => `course:${id}`,
   live: (id: string) => `live:${id}`,
+  /** Private WebRTC signalling for one person in one live class. */
+  liveSignal: (sessionId: string, userId: string) => `livesig:${sessionId}:${userId}`,
 };
 
 type Publishable = { topic: string; type: string; data: unknown };

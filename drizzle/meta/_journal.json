@@ -15,6 +15,13 @@
       "when": 1792395543668,
       "tag": "0001_realtime_live_learning",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792413114625,
+      "tag": "0002_browser_broadcast",
+      "breakpoints": true
     }
   ]
 }

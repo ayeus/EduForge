@@ -45,17 +45,25 @@ export async function getLiveAccess(user: CurrentUser, sessionId: string) {
 }
 
 async function broadcastStatus(s: LiveSession) {
-  const data = { sessionId: s.id, courseId: s.courseId, status: s.status, title: s.title, startedAt: s.startedAt, endedAt: s.endedAt };
+  const data = {
+    sessionId: s.id,
+    courseId: s.courseId,
+    status: s.status,
+    title: s.title,
+    startedAt: s.startedAt,
+    endedAt: s.endedAt,
+    broadcastMode: s.broadcastMode,
+  };
   await publish(
     { topic: topics.live(s.id), type: "live.status", data },
     { topic: topics.course(s.courseId), type: "live.status", data },
   );
 }
 
-export async function markLive(s: LiveSession) {
+export async function markLive(s: LiveSession, mode: "browser" | "encoder" = "encoder", broadcasterId: string | null = null) {
   const [updated] = await db
     .update(liveSessions)
-    .set({ status: "live", startedAt: new Date() })
+    .set({ status: "live", startedAt: new Date(), broadcastMode: mode, broadcasterId, hostSeenAt: new Date() })
     .where(and(eq(liveSessions.id, s.id), eq(liveSessions.status, "scheduled")))
     .returning();
   if (!updated) return s;
@@ -79,6 +87,46 @@ export async function markEnded(s: LiveSession) {
   await db.delete(livePresence).where(eq(livePresence.sessionId, s.id));
   await broadcastStatus(updated);
   return updated;
+}
+
+/**
+ * The host started (or resumed) broadcasting from their browser. The first start moves the
+ * class to live and notifies students; a resume just points viewers at the host again.
+ */
+export async function startBrowserBroadcast(s: LiveSession, userId: string) {
+  if (s.status === "ended") return s;
+  if (s.status === "scheduled") return markLive(s, "browser", userId);
+  const [updated] = await db
+    .update(liveSessions)
+    .set({ broadcastMode: "browser", broadcasterId: userId, hostSeenAt: new Date() })
+    .where(and(eq(liveSessions.id, s.id), eq(liveSessions.status, "live")))
+    .returning();
+  if (!updated) return s;
+  await broadcastStatus(updated);
+  return updated;
+}
+
+/** Called while the host's browser is broadcasting. */
+export async function touchHost(sessionId: string) {
+  await db.update(liveSessions).set({ hostSeenAt: new Date() }).where(eq(liveSessions.id, sessionId));
+}
+
+const HOST_TIMEOUT_MS = 3 * 60_000;
+
+/** A browser broadcast whose host has been silent for a few minutes (closed tab, crash) ends itself. */
+export async function endIfHostGone(s: LiveSession) {
+  if (s.status !== "live" || s.broadcastMode !== "browser") return s;
+  if (s.hostSeenAt && Date.now() - s.hostSeenAt.getTime() < HOST_TIMEOUT_MS) return s;
+  return markEnded(s);
+}
+
+/** Append a browser-recorded segment to the class replay. */
+export async function addRecordingSegment(sessionId: string, key: string) {
+  await db
+    .update(liveSessions)
+    .set({ recordingKeys: sql`${liveSessions.recordingKeys} || ${JSON.stringify([key])}::jsonb` })
+    .where(eq(liveSessions.id, sessionId));
+  await publish({ topic: topics.live(sessionId), type: "live.replay", data: { sessionId } });
 }
 
 /** Look up the recording Mux made of the broadcast and store its playback id. */
@@ -105,6 +153,8 @@ export type EncoderState = "idle" | "active" | "disabled" | "unknown";
  * Works without webhooks; webhooks just call this sooner.
  */
 export async function syncWithMux(s: LiveSession, { force = false } = {}): Promise<{ session: LiveSession; encoder: EncoderState }> {
+  // Browser broadcasts don't go through Mux; their liveness comes from the host's heartbeat.
+  if (s.broadcastMode === "browser") return { session: await endIfHostGone(s), encoder: "unknown" };
   if (!s.muxStreamId || !muxConfigured()) return { session: s, encoder: "unknown" };
   if (s.status === "ended" && s.replayPlaybackId) return { session: s, encoder: "disabled" };
   if (!force && s.syncedAt && Date.now() - s.syncedAt.getTime() < 8000) return { session: s, encoder: "unknown" };
@@ -113,7 +163,7 @@ export async function syncWithMux(s: LiveSession, { force = false } = {}): Promi
   const stream = await mux().video.liveStreams.retrieve(s.muxStreamId);
   let session = s;
   if (stream.status === "active" && session.status === "scheduled") {
-    session = await markLive(session);
+    session = await markLive(session, "encoder");
   } else if (stream.status !== "active" && session.status === "live") {
     session = await markEnded(session);
   }
@@ -150,7 +200,7 @@ const sessionCols = {
   status: liveSessions.status,
   startedAt: liveSessions.startedAt,
   endedAt: liveSessions.endedAt,
-  hasReplay: sql<boolean>`${liveSessions.replayPlaybackId} is not null`,
+  hasReplay: sql<boolean>`(${liveSessions.replayPlaybackId} is not null or jsonb_array_length(${liveSessions.recordingKeys}) > 0)`,
   courseId: courses.id,
   courseTitle: courses.title,
   instructorName: users.name,
@@ -188,7 +238,11 @@ export async function listLiveForStudent(userId: string) {
       or(
         eq(liveSessions.status, "live"),
         and(eq(liveSessions.status, "scheduled"), gt(liveSessions.scheduledFor, sql`now() - interval '6 hours'`)),
-        and(eq(liveSessions.status, "ended"), isNotNull(liveSessions.replayPlaybackId), gt(liveSessions.endedAt, sql`now() - interval '60 days'`)),
+        and(
+          eq(liveSessions.status, "ended"),
+          or(isNotNull(liveSessions.replayPlaybackId), sql`jsonb_array_length(${liveSessions.recordingKeys}) > 0`),
+          gt(liveSessions.endedAt, sql`now() - interval '60 days'`),
+        ),
       ),
     )
     .orderBy(...ordering)

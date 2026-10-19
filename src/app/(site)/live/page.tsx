@@ -28,7 +28,7 @@ export default async function LivePage() {
           <h1 className="font-display text-3xl font-semibold">Live classes</h1>
           <p className="mt-2 max-w-xl text-muted-foreground">
             {host
-              ? "Teach in real time. Schedule a class, stream from OBS, Zoom or your phone, and talk with students in the chat."
+              ? "Teach in real time. Schedule a class, go live with your camera and screen right from the browser, and talk with students in the chat."
               : "Join your instructors live, ask questions in the chat and catch up on replays."}
           </p>
         </div>
